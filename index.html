@@ -1210,7 +1210,7 @@ body::before{
   <div class="header-inner">
     <div class="brand">
       <!-- 噗噗家的小豆泥 -->
-      <img class="brand-cat" src="cat.png?v=14" alt="小豆泥">
+      <img class="brand-cat" src="cat.png?v=15" alt="小豆泥">
 
       <div class="brand-text">
         <h1>噗噗专属菜单</h1>
@@ -1239,7 +1239,7 @@ body::before{
 <div class="cbar" id="cbar"></div>
 <div class="sbar" id="sbar"></div>
 <div id="content-area"></div>
-<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么"><img class="rp-paw" src="paw.png?v=14" alt="随机选菜"></button>
+<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么"><img class="rp-paw" src="paw.png?v=15" alt="随机选菜"></button>
 
 <!-- 菜品弹窗 -->
 <div class="mo" id="dish-modal">
@@ -1331,7 +1331,7 @@ function renderGrid(){
   const f=getFiltered(),area=document.getElementById('content-area');
   if(f.length===0){
     area.innerHTML='<div class="empty">'+
-      '<img class="ei" src="cat.png?v=14" alt="小豆泥">'+
+      '<img class="ei" src="cat.png?v=15" alt="小豆泥">'+
       '<h3>'+(dishes.length===0?'还没有菜品哦':'没找到匹配的菜')+'</h3>'+
       '<p>'+(dishes.length===0?'点右上角「➕ 添加」，把做过的菜拍下来':'换个关键词或分类试试')+'</p>'+
       (dishes.length===0?'<button class="btn btn-p" onclick="openAddModal()" style="border-radius:20px">➕ 添加第一道菜</button>':'')+
@@ -1500,6 +1500,9 @@ function importData(e){
 // ===== Auto Sync (无感自动同步，固定频道) =====
 const SYNC_TOPIC='pupumenu-dish-2026-aug';
 let lastFetchTime=parseInt(localStorage.getItem('dish_lfetch_v1')||'0');
+let syncAbortCtrl=null,isFetching=false,rateLimitedUntil=0;
+// V15升级：重置拉取时间，强制全量同步
+if(parseInt(localStorage.getItem('sync_ver')||'0')<2){lastFetchTime=0;localStorage.removeItem('dish_lfetch_v1');localStorage.setItem('sync_ver','2')}
 
 function prepareSyncPayload(){
   const payload={dishes:dishes.map(d=>({id:d.id,name:d.name,category:d.category,desc:d.desc,photo:d.photoSync||d.photo||null,tags:d.tags||[],createdAt:d.createdAt,updatedAt:d.updatedAt,order:d.order||d.createdAt})),categories:categories,deletedIds:[...new Set(deletedIds)],lastUpdated:Date.now(),senderId:getSenderId()};
@@ -1511,22 +1514,30 @@ async function syncToCloud(){
   const payload=prepareSyncPayload();
   try{
     const resp=await fetch('https://ntfy.sh/'+SYNC_TOPIC,{method:'POST',headers:{'TTL':'604800','Content-Type':'application/json'},body:JSON.stringify(payload)});
-    console.log('[Sync] 上传',resp.ok,'菜品:',payload.dishes.length);
+    console.log('[Sync] 上传',resp.ok,'菜品:',payload.dishes.length,'大小:',new Blob([JSON.stringify(payload)]).size);
   }catch(err){console.log('[Sync] 上传失败',err)}
 }
 function scheduleSync(){if(syncTimeout)clearTimeout(syncTimeout);syncTimeout=setTimeout(()=>syncToCloud(),1500)}
 async function fetchFromCloud(){
+  if(isFetching)return;
+  if(Date.now()<rateLimitedUntil)return;
+  isFetching=true;
+  if(syncAbortCtrl)syncAbortCtrl.abort();
+  syncAbortCtrl=new AbortController();
+  const timeoutId=setTimeout(()=>syncAbortCtrl.abort(),12000);
   try{
     const since=lastFetchTime>0?lastFetchTime:'all';
-    const resp=await fetch('https://ntfy.sh/'+SYNC_TOPIC+'/json?poll=1&since='+since);
+    const resp=await fetch('https://ntfy.sh/'+SYNC_TOPIC+'/json?since='+since,{signal:syncAbortCtrl.signal});
+    clearTimeout(timeoutId);
     if(resp.status===429){
-      console.log('[Sync] 被限流,退避60秒');
-      if(pollTimer)clearInterval(pollTimer);
-      pollTimer=setInterval(()=>fetchFromCloud(),60000);
+      console.log('[Sync] 429限流,退避60秒');
+      rateLimitedUntil=Date.now()+60000;
+      isFetching=false;
       return;
     }
-    if(!resp.ok){console.log('[Sync] HTTP',resp.status);return}
+    if(!resp.ok){console.log('[Sync] HTTP',resp.status);isFetching=false;return}
     const text=await resp.text();
+    isFetching=false;
     const lines=text.trim().split('\n').filter(l=>l);
     if(lines.length===0)return;
     const myId=getSenderId();
@@ -1534,24 +1545,33 @@ async function fetchFromCloud(){
     for(const line of lines){
       try{
         const msg=JSON.parse(line);
-        if(msg.event==='message'&&msg.message){
-          if(msg.time&&msg.time>lastFetchTime)lastFetchTime=msg.time;
-          const data=JSON.parse(msg.message);
-          if(data.senderId&&data.senderId!==myId&&data.dishes){msgs.push(data)}
+        if(msg.event!=='message')continue;
+        if(msg.time&&msg.time>=lastFetchTime)lastFetchTime=msg.time+1;
+        let data=null;
+        // ntfy大payload自动转附件，需单独fetch附件URL
+        if(msg.attachment&&msg.attachment.url){
+          try{const attResp=await fetch(msg.attachment.url);if(attResp.ok){data=JSON.parse(await attResp.text())}}catch(e){console.log('[Sync] 附件获取失败',e)}
+        }else if(msg.message){
+          try{data=JSON.parse(msg.message)}catch(e){}
         }
+        if(data&&data.senderId&&data.senderId!==myId&&data.dishes){msgs.push(data)}
       }catch(e){}
     }
     if(lastFetchTime>0)localStorage.setItem('dish_lfetch_v1',String(lastFetchTime));
     if(msgs.length===0)return;
     msgs.sort((a,b)=>(a.lastUpdated||0)-(b.lastUpdated||0));
-    console.log('[Sync] 收到',msgs.length,'条, since='+since);
+    console.log('[Sync] 收到',msgs.length,'条消息');
     let changed=false;
     for(const m of msgs){if(mergeOne(m))changed=true}
     deletedIds=[...new Set(deletedIds)];
     if(changed){saveData();renderDishes();console.log('[Sync] 合并完成,菜品:',dishes.length)}
-  }catch(err){console.log('[Sync] 拉取失败',err)}
+  }catch(err){
+    clearTimeout(timeoutId);
+    isFetching=false;
+    if(err.name!=='AbortError')console.log('[Sync] 拉取失败',err);
+  }
 }
-function startPolling(){if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(()=>fetchFromCloud(),30000)}
+function startPolling(){if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(()=>fetchFromCloud(),20000)}
 function mergeOne(incoming){
   if(!incoming)return false;
   let changed=false;
@@ -1578,7 +1598,7 @@ loadData();
 renderDishes();
 
 // App 版本号 - 部署时 +1，强制清旧缓存
-const APP_VERSION = 14;
+const APP_VERSION = 15;
 if('serviceWorker' in navigator){
   const lastVersion = localStorage.getItem('app_version');
   if(!lastVersion || parseInt(lastVersion) < APP_VERSION){
@@ -1588,7 +1608,7 @@ if('serviceWorker' in navigator){
     }
     if(!lastVersion){location.reload()}
   } else {
-    navigator.serviceWorker.register('./sw.js?v=14').catch(function(e){console.log('SW error:',e)});
+    navigator.serviceWorker.register('./sw.js?v=15').catch(function(e){console.log('SW error:',e)});
   }
 }
 // 无感自动同步：打开就拉取 + 30秒轮询 + 回前台拉取
