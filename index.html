@@ -1210,7 +1210,7 @@ body::before{
   <div class="header-inner">
     <div class="brand">
       <!-- 噗噗家的小豆泥 -->
-      <img class="brand-cat" src="cat.png?v=12" alt="小豆泥">
+      <img class="brand-cat" src="cat.png?v=13" alt="小豆泥">
 
       <div class="brand-text">
         <h1>噗噗专属菜单</h1>
@@ -1239,7 +1239,7 @@ body::before{
 <div class="cbar" id="cbar"></div>
 <div class="sbar" id="sbar"></div>
 <div id="content-area"></div>
-<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么"><img class="rp-paw" src="paw.png?v=12" alt="随机选菜"></button>
+<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么"><img class="rp-paw" src="paw.png?v=13" alt="随机选菜"></button>
 
 <!-- 菜品弹窗 -->
 <div class="mo" id="dish-modal">
@@ -1331,7 +1331,7 @@ function renderGrid(){
   const f=getFiltered(),area=document.getElementById('content-area');
   if(f.length===0){
     area.innerHTML='<div class="empty">'+
-      '<img class="ei" src="cat.png?v=12" alt="小豆泥">'+
+      '<img class="ei" src="cat.png?v=13" alt="小豆泥">'+
       '<h3>'+(dishes.length===0?'还没有菜品哦':'没找到匹配的菜')+'</h3>'+
       '<p>'+(dishes.length===0?'点右上角「➕ 添加」，把做过的菜拍下来':'换个关键词或分类试试')+'</p>'+
       (dishes.length===0?'<button class="btn btn-p" onclick="openAddModal()" style="border-radius:20px">➕ 添加第一道菜</button>':'')+
@@ -1501,7 +1501,7 @@ function importData(e){
 const SYNC_TOPIC='pupumenu-dish-2026-aug';
 
 function prepareSyncPayload(){
-  const payload={dishes:dishes.map(d=>({id:d.id,name:d.name,category:d.category,desc:d.desc,photo:d.photoSync||d.photo||null,tags:d.tags||[],createdAt:d.createdAt,updatedAt:d.updatedAt,order:d.order||d.createdAt})),categories:categories,deletedIds:deletedIds,lastUpdated:Date.now(),senderId:getSenderId()};
+  const payload={dishes:dishes.map(d=>({id:d.id,name:d.name,category:d.category,desc:d.desc,photo:d.photoSync||d.photo||null,tags:d.tags||[],createdAt:d.createdAt,updatedAt:d.updatedAt,order:d.order||d.createdAt})),categories:categories,deletedIds:[...new Set(deletedIds)],lastUpdated:Date.now(),senderId:getSenderId()};
   let size=new Blob([JSON.stringify(payload)]).size;
   if(size>200000){payload.dishes=payload.dishes.map(d=>({...d,photo:null}))}
   return payload;
@@ -1509,8 +1509,9 @@ function prepareSyncPayload(){
 async function syncToCloud(){
   const payload=prepareSyncPayload();
   try{
-    await fetch('https://ntfy.sh/'+SYNC_TOPIC,{method:'POST',headers:{'TTL':'604800','Content-Type':'application/json'},body:JSON.stringify(payload)});
-  }catch(err){}
+    const resp=await fetch('https://ntfy.sh/'+SYNC_TOPIC,{method:'POST',headers:{'TTL':'604800','Content-Type':'application/json'},body:JSON.stringify(payload)});
+    console.log('[Sync] 上传',resp.ok,'菜品数:',payload.dishes.length);
+  }catch(err){console.log('[Sync] 上传失败',err)}
 }
 function scheduleSync(){if(syncTimeout)clearTimeout(syncTimeout);syncTimeout=setTimeout(()=>syncToCloud(),1500)}
 async function fetchFromCloud(){
@@ -1518,15 +1519,36 @@ async function fetchFromCloud(){
     const resp=await fetch('https://ntfy.sh/'+SYNC_TOPIC+'/json?poll=1&since=all');
     const text=await resp.text();
     const lines=text.trim().split('\n').filter(l=>l);
-    if(lines.length===0)return;
-    let latest=null,latestTime=0;
-    for(const line of lines){try{const msg=JSON.parse(line);if(msg.event==='message'&&msg.message){const data=JSON.parse(msg.message);if(data.lastUpdated>latestTime){latestTime=data.lastUpdated;latest=data}}}catch(e){}}
-    if(latest&&latest.senderId!==getSenderId()){mergeSyncData(latest)}
-  }catch(err){}
+    if(lines.length===0){console.log('[Sync] 无消息');return}
+    const myId=getSenderId();
+    // 收集所有其他设备的同步消息，按时间排序
+    const msgs=[];
+    for(const line of lines){
+      try{
+        const msg=JSON.parse(line);
+        if(msg.event==='message'&&msg.message){
+          const data=JSON.parse(msg.message);
+          if(data.senderId&&data.senderId!==myId&&data.dishes){msgs.push(data)}
+        }
+      }catch(e){}
+    }
+    if(msgs.length===0){console.log('[Sync] 无其他设备消息');return}
+    msgs.sort((a,b)=>(a.lastUpdated||0)-(b.lastUpdated||0));
+    console.log('[Sync] 收到',msgs.length,'条同步消息');
+    // 按时间顺序逐条合并
+    let changed=false;
+    for(const m of msgs){
+      if(mergeOne(m))changed=true;
+    }
+    // 去重deletedIds
+    deletedIds=[...new Set(deletedIds)];
+    if(changed){saveData();renderDishes();console.log('[Sync] 已合并,当前菜品:',dishes.length)}
+  }catch(err){console.log('[Sync] 拉取失败',err)}
 }
 function startPolling(){if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(()=>fetchFromCloud(),15000)}
-function mergeSyncData(incoming){
-  if(!incoming)return;let changed=false;
+function mergeOne(incoming){
+  if(!incoming)return false;
+  let changed=false;
   if(incoming.deletedIds){incoming.deletedIds.forEach(id=>{if(!deletedIds.includes(id))deletedIds.push(id);if(dishes.some(d=>d.id===id)){dishes=dishes.filter(d=>d.id!==id);changed=true}})}
   const localMap=new Map(dishes.map(d=>[d.id,d]));
   for(const inc of(incoming.dishes||[])){
@@ -1536,7 +1558,7 @@ function mergeSyncData(incoming){
   }
   dishes=Array.from(localMap.values());
   if(incoming.categories){incoming.categories.forEach(c=>{if(!categories.includes(c)){categories.push(c);changed=true}})}
-  if(changed){saveData();renderDishes()}
+  return changed;
 }
 
 // ===== Utils =====
@@ -1550,7 +1572,7 @@ loadData();
 renderDishes();
 
 // App 版本号 - 部署时 +1，强制清旧缓存
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 if('serviceWorker' in navigator){
   const lastVersion = localStorage.getItem('app_version');
   if(!lastVersion || parseInt(lastVersion) < APP_VERSION){
@@ -1560,7 +1582,7 @@ if('serviceWorker' in navigator){
     }
     if(!lastVersion){location.reload()}
   } else {
-    navigator.serviceWorker.register('./sw.js?v=12').catch(function(e){console.log('SW error:',e)});
+    navigator.serviceWorker.register('./sw.js?v=13').catch(function(e){console.log('SW error:',e)});
   }
 }
 // 无感自动同步：打开就拉取 + 定时轮询 + 回前台拉取
