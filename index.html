@@ -45,7 +45,7 @@ body{
   background:#F4E9D3;
   color:var(--text);
   min-height:100vh;
-  padding-bottom:90px;
+  padding-bottom:130px;
   -webkit-tap-highlight-color:transparent;
   position:relative;
   overflow-x:hidden;
@@ -381,12 +381,56 @@ body::before{
   color:var(--tl);
   position:relative;
   z-index:1;
+  display:none;
 }
 .sbar span{
   display:flex;
   align-items:center;
   gap:4px;
   font-weight:500;
+}
+
+/* ===== 底部Tab栏 ===== */
+.btm-bar{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  background:#FFFDF7;
+  border-top:1.5px solid var(--border);
+  display:flex;
+  z-index:50;
+  padding:8px 0 calc(8px + env(safe-area-inset-bottom));
+  box-shadow:0 -2px 14px rgba(124,84,54,.08);
+}
+.bb{
+  flex:1;
+  border:none;
+  background:transparent;
+  font-family:inherit;
+  font-size:12px;
+  color:var(--tl);
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  padding:6px 0;
+  font-weight:600;
+  transition:all .2s;
+}
+.bb-i{
+  font-size:22px;
+  line-height:1;
+  opacity:.6;
+  transition:all .2s;
+}
+.bb.active{
+  color:var(--primary);
+}
+.bb.active .bb-i{
+  opacity:1;
+  transform:scale(1.1);
 }
 
 /* ===== Cards ===== */
@@ -532,6 +576,44 @@ body::before{
   background:#fff;
   transform:scale(1.1);
 }
+/* 卡片右上角 +/− 按钮：加入/移出菜单 */
+.dcard .mt{
+  position:absolute;
+  top:10px;
+  right:10px;
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  border:2px solid var(--primary);
+  background:#FFFDF7;
+  color:var(--primary);
+  cursor:pointer;
+  font-size:20px;
+  font-weight:bold;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:var(--shadow);
+  z-index:4;
+  transition:all .2s;
+  font-family:inherit;
+  line-height:1;
+  padding:0;
+}
+.dcard .mt:hover{
+  background:var(--primary);
+  color:#FFFDF7;
+  transform:scale(1.12);
+}
+.dcard .mt.in{
+  background:var(--primary);
+  color:#FFFDF7;
+}
+.dcard .mt.in::before{
+  content:'✓';
+  font-size:18px;
+}
+.dcard .mt.in span{display:none}
 .dcard .reorder{
   position:absolute;
   bottom:14px;
@@ -593,14 +675,7 @@ body::before{
   overflow:hidden;
 }
 .mp::before{
-  content:'小豆泥 ✦ 噗噗';
-  position:absolute;
-  top:14px;
-  right:18px;
-  font-size:10px;
-  color:var(--tl2);
-  letter-spacing:2px;
-  font-style:italic;
+  display:none;
 }
 .mp h2{
   text-align:center;
@@ -1210,7 +1285,7 @@ body::before{
   <div class="header-inner">
     <div class="brand">
       <!-- 噗噗家的小豆泥 -->
-      <img class="brand-cat" src="cat.png?v=15" alt="小豆泥">
+      <img class="brand-cat" src="cat.png?v=16" alt="小豆泥">
 
       <div class="brand-text">
         <h1>噗噗专属菜单</h1>
@@ -1230,16 +1305,23 @@ body::before{
 
 <div class="toolbar">
   <div class="sb"><input type="text" id="search-input" placeholder="搜菜名、标签..." oninput="renderDishes()"></div>
-  <div class="vt">
-    <button id="vg" class="active" onclick="switchView('grid')">🎴 卡片</button>
-    <button id="vm" onclick="switchView('menu')">📋 菜单</button>
-  </div>
 </div>
 
 <div class="cbar" id="cbar"></div>
-<div class="sbar" id="sbar"></div>
 <div id="content-area"></div>
-<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么"><img class="rp-paw" src="paw.png?v=15" alt="随机选菜"></button>
+<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么"><img class="rp-paw" src="paw.png?v=16" alt="随机选菜"></button>
+
+<!-- 底部Tab栏：卡片 / 菜单 -->
+<nav class="btm-bar">
+  <button class="bb active" id="bvc" onclick="switchView('grid')">
+    <span class="bb-i">🎴</span>
+    <span>卡片</span>
+  </button>
+  <button class="bb" id="bvm" onclick="switchView('menu')">
+    <span class="bb-i">📋</span>
+    <span>菜单</span>
+  </button>
+</nav>
 
 <!-- 菜品弹窗 -->
 <div class="mo" id="dish-modal">
@@ -1331,7 +1413,7 @@ function renderGrid(){
   const f=getFiltered(),area=document.getElementById('content-area');
   if(f.length===0){
     area.innerHTML='<div class="empty">'+
-      '<img class="ei" src="cat.png?v=15" alt="小豆泥">'+
+      '<img class="ei" src="cat.png?v=16" alt="小豆泥">'+
       '<h3>'+(dishes.length===0?'还没有菜品哦':'没找到匹配的菜')+'</h3>'+
       '<p>'+(dishes.length===0?'点右上角「➕ 添加」，把做过的菜拍下来':'换个关键词或分类试试')+'</p>'+
       (dishes.length===0?'<button class="btn btn-p" onclick="openAddModal()" style="border-radius:20px">➕ 添加第一道菜</button>':'')+
@@ -1342,8 +1424,11 @@ function renderGrid(){
   f.forEach((d,idx)=>{
     const ph=d.photo?'<div class="dp-wrap"><img class="dp" src="'+d.photo+'" alt="'+esc(d.name)+'" loading="lazy"></div>':'<div class="dp-wrap"><div class="dph">🍽️</div></div>';
     const tags=(d.tags||[]).slice(0,3).map(t=>'<span class="dg">'+esc(t)+'</span>').join('');
-    html+='<div class="dcard" onclick="editDish(\''+d.id+'\')">'+
-      '<div class="da"><button onclick="event.stopPropagation();editDish(\''+d.id+'\')" title="编辑">✏️</button><button onclick="event.stopPropagation();deleteDish(\''+d.id+'\')" title="删除">🗑️</button></div>'+
+    const mtCls=d.inMenu?'in':'';
+    const mtLabel=d.inMenu?'':'<span>+</span>';
+    html+='<div class="dcard">'+
+      '<button class="mt '+mtCls+'" onclick="event.stopPropagation();toggleInMenu(\''+d.id+'\')" title="'+(d.inMenu?'已加入菜单，点击移除':'加入菜单')+'">'+mtLabel+'</button>'+
+      '<div onclick="editDish(\''+d.id+'\')" style="cursor:pointer">'+
       ph+
       '<div class="di">'+
         '<div class="dn">'+esc(d.name)+'</div>'+
@@ -1351,15 +1436,15 @@ function renderGrid(){
         (d.desc?'<div class="dd">'+esc(d.desc)+'</div>':'')+
         (tags?'<div class="dt">'+tags+'</div>':'')+
       '</div>'+
-      '<div class="reorder"><button onclick="event.stopPropagation();moveDish(\''+d.id+'\',-1)" title="上移">▲</button><button onclick="event.stopPropagation();moveDish(\''+d.id+'\',1)" title="下移">▼</button></div>'+
+      '</div>'+
     '</div>';
   });
   area.innerHTML=html+'</div>';
 }
 function renderMenu(){
-  const f=getFiltered(),area=document.getElementById('content-area');
+  const f=getFiltered().filter(d=>d.inMenu),area=document.getElementById('content-area');
   if(f.length===0){
-    area.innerHTML='<div class="empty"><h3>菜单是空的</h3><p>先添加一些菜品吧</p></div>';
+    area.innerHTML='<div class="empty"><img class="ei" src="cat.png?v=16" alt="小豆泥"><h3>菜单是空的</h3><p>在卡片页面点击 + 号，把想吃的菜加入菜单</p></div>';
     return;
   }
   const g={};f.forEach(d=>{const c=d.category||'未分类';if(!g[c])g[c]=[];g[c].push(d)});
@@ -1375,8 +1460,16 @@ function renderMenu(){
   });
   area.innerHTML=html+'</div></div>';
 }
-function renderDishes(){renderCats();renderStats();if(currentView==='grid')renderGrid();else renderMenu()}
-function switchView(v){currentView=v;document.getElementById('vg').classList.toggle('active',v==='grid');document.getElementById('vm').classList.toggle('active',v==='menu');renderDishes()}
+function toggleInMenu(id){
+  const d=dishes.find(x=>x.id===id);if(!d)return;
+  d.inMenu=!d.inMenu;
+  d.updatedAt=Date.now();
+  saveData();
+  if(currentView==='menu')renderMenu();else renderGrid();
+  scheduleSync();
+}
+function renderDishes(){renderCats();if(currentView==='grid')renderGrid();else renderMenu()}
+function switchView(v){currentView=v;document.getElementById('bvc').classList.toggle('active',v==='grid');document.getElementById('bvm').classList.toggle('active',v==='menu');renderDishes()}
 function selectCategory(c){currentCategory=c;renderDishes()}
 
 // ===== Reorder =====
@@ -1505,7 +1598,7 @@ let syncAbortCtrl=null,isFetching=false,rateLimitedUntil=0;
 if(parseInt(localStorage.getItem('sync_ver')||'0')<2){lastFetchTime=0;localStorage.removeItem('dish_lfetch_v1');localStorage.setItem('sync_ver','2')}
 
 function prepareSyncPayload(){
-  const payload={dishes:dishes.map(d=>({id:d.id,name:d.name,category:d.category,desc:d.desc,photo:d.photoSync||d.photo||null,tags:d.tags||[],createdAt:d.createdAt,updatedAt:d.updatedAt,order:d.order||d.createdAt})),categories:categories,deletedIds:[...new Set(deletedIds)],lastUpdated:Date.now(),senderId:getSenderId()};
+  const payload={dishes:dishes.map(d=>({id:d.id,name:d.name,category:d.category,desc:d.desc,photo:d.photoSync||d.photo||null,tags:d.tags||[],inMenu:!!d.inMenu,createdAt:d.createdAt,updatedAt:d.updatedAt,order:d.order||d.createdAt})),categories:categories,deletedIds:[...new Set(deletedIds)],lastUpdated:Date.now(),senderId:getSenderId()};
   let size=new Blob([JSON.stringify(payload)]).size;
   if(size>200000){payload.dishes=payload.dishes.map(d=>({...d,photo:null}))}
   return payload;
@@ -1580,7 +1673,12 @@ function mergeOne(incoming){
   for(const inc of(incoming.dishes||[])){
     if(deletedIds.includes(inc.id))continue;
     const loc=localMap.get(inc.id);
-    if(!loc||(inc.updatedAt||0)>(loc.updatedAt||0)){localMap.set(inc.id,{...inc,photo:inc.photo||null,photoSync:inc.photo||null});changed=true}
+    if(!loc||(inc.updatedAt||0)>(loc.updatedAt||0)){
+      // 保留本地inMenu偏好（用户自选菜单的标记不应被云端覆盖）
+      const localInMenu=loc?!!loc.inMenu:false;
+      localMap.set(inc.id,{...inc,photo:inc.photo||null,photoSync:inc.photo||null,inMenu:localInMenu});
+      changed=true;
+    }
   }
   dishes=Array.from(localMap.values());
   if(incoming.categories){incoming.categories.forEach(c=>{if(!categories.includes(c)){categories.push(c);changed=true}})}
@@ -1598,7 +1696,7 @@ loadData();
 renderDishes();
 
 // App 版本号 - 部署时 +1，强制清旧缓存
-const APP_VERSION = 15;
+const APP_VERSION = 16;
 if('serviceWorker' in navigator){
   const lastVersion = localStorage.getItem('app_version');
   if(!lastVersion || parseInt(lastVersion) < APP_VERSION){
@@ -1608,7 +1706,7 @@ if('serviceWorker' in navigator){
     }
     if(!lastVersion){location.reload()}
   } else {
-    navigator.serviceWorker.register('./sw.js?v=15').catch(function(e){console.log('SW error:',e)});
+    navigator.serviceWorker.register('./sw.js?v=16').catch(function(e){console.log('SW error:',e)});
   }
 }
 // 无感自动同步：打开就拉取 + 30秒轮询 + 回前台拉取
