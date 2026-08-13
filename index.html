@@ -24,7 +24,7 @@ body{
 }
 body::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-  background-image:url('paw.png?v=18');background-repeat:repeat;
+  background-image:url('paw.png?v=19');background-repeat:repeat;
   background-size:90px;opacity:.05;
 }
 header{
@@ -46,15 +46,26 @@ header{
 }
 .cat-bar{
   position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 20px 6px;
-  display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;align-items:center;
 }
 .cat-bar::-webkit-scrollbar{display:none}
 .cat-chip{
-  white-space:nowrap;padding:5px 12px;border-radius:14px;border:1.5px solid var(--border);
-  background:var(--card);font-size:12px;color:var(--tl);cursor:pointer;font-family:inherit;
-  transition:all .2s;
+  white-space:nowrap;padding:6px 10px 6px 14px;border-radius:20px;border:1.5px solid var(--border);
+  background:var(--card);font-size:13px;font-weight:600;color:var(--text);
+  cursor:pointer;font-family:inherit;transition:all .2s;display:inline-flex;align-items:center;gap:6px;
+}
+.cat-chip .cnt{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:20px;height:18px;padding:0 6px;border-radius:10px;
+  background:#F0E6D2;color:var(--tl);font-size:11px;font-weight:500;
 }
 .cat-chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.cat-chip.active .cnt{background:rgba(255,255,255,.25);color:#fff}
+.cat-edit{
+  flex-shrink:0;width:30px;height:30px;border-radius:50%;border:1.5px dashed var(--border);
+  background:transparent;color:var(--tl);font-size:14px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
 #content{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:8px 20px}
 .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
 .dcard{
@@ -84,8 +95,10 @@ header{
 .card-btn.menu-in{background:rgba(160,119,87,.82)}
 .card-btn.del-btn{background:rgba(180,60,40,.35)}
 .mv{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:18px;margin-top:6px}
-.mv h2{font-size:20px;color:var(--primary);text-align:center;margin-bottom:4px}
-.mv-sub{text-align:center;font-size:11px;color:var(--tl2);margin-bottom:14px}
+.mv h2{font-size:22px;color:var(--primary);text-align:center;margin-bottom:4px;font-weight:700}
+.mv-sub{text-align:center;font-size:12px;color:var(--tl2);margin-bottom:14px;letter-spacing:1px}
+.mv-sub::before,.mv-sub::after{content:'🌿';margin:0 6px;opacity:.7;font-size:11px}
+.mv-empty-line{text-align:center;font-size:11px;color:var(--tl2);margin:0 0 14px 0;letter-spacing:2px}
 .msec{margin-bottom:14px}
 .mst{font-size:13px;font-weight:600;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px}
 .mi{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid #F5EDDE}
@@ -136,6 +149,13 @@ header{
   font-size:14px;font-family:inherit;color:var(--text);background:#fff;outline:none;
 }
 .modal textarea{resize:vertical;min-height:50px}
+.catmgr-list{display:flex;flex-direction:column;gap:8px;max-height:50vh;overflow-y:auto;margin-top:8px}
+.catmgr-row{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#FAF5EC;border-radius:10px}
+.catmgr-input{flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:13px;font-family:inherit;color:var(--text);outline:none}
+.catmgr-cnt{font-size:11px;color:var(--tl);flex-shrink:0}
+.catmgr-del{width:26px;height:26px;border-radius:50%;border:none;background:#F0E6D2;color:var(--tl);cursor:pointer;font-size:13px}
+.catmgr-del:hover{background:var(--danger);color:#fff}
+.catmgr-add{margin-top:4px;padding:8px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;color:var(--tl);cursor:pointer;font-size:13px;font-family:inherit}
 .photo-preview{
   margin-top:6px;width:100%;aspect-ratio:16/9;border-radius:10px;border:1.5px dashed var(--border);
   display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;
@@ -180,7 +200,7 @@ header{
 </head>
 <body>
 <header>
-  <div class="logo"><img src="cat.png?v=18" alt="logo"><span>噗噗菜单</span></div>
+  <div class="logo"><img src="cat.png?v=19" alt="logo"><span>噗噗菜单</span></div>
   <button class="btn-add" onclick="openAddModal()">➕ 添加</button>
 </header>
 <div class="search-bar"><input type="text" id="searchInput" placeholder="搜菜名、标签..." oninput="renderContent()"></div>
@@ -190,7 +210,7 @@ header{
   <button class="tab active" id="tabGrid" onclick="switchView('grid')"><span class="tab-icon">🎴</span>卡片</button>
   <button class="tab" id="tabMenu" onclick="switchView('menu')"><span class="tab-icon">📋</span>菜单</button>
 </div>
-<button class="fab" onclick="randomPick()"><img src="paw.png?v=18" alt="随机"></button>
+<button class="fab" onclick="randomPick()"><img src="paw.png?v=19" alt="随机"></button>
 <div class="modal-bg" id="modalBg">
   <div class="modal">
     <h3 id="modalTitle">添加菜品</h3>
@@ -205,7 +225,7 @@ header{
     <textarea id="dishDesc" placeholder="简短描述"></textarea>
     <label>标签（逗号分隔）</label>
     <input type="text" id="dishTags" placeholder="如: 快手, 下饭">
-    <div class="modal-btns">
+    <div class="modal-btns" id="modalBtns">
       <button class="btn btn-danger" id="delBtn" style="display:none" onclick="deleteDishFromModal()">删除</button>
       <button class="btn btn-cancel" onclick="closeModal()">取消</button>
       <button class="btn btn-primary" onclick="saveDish()">保存</button>
@@ -216,13 +236,13 @@ header{
 <div class="toast" id="toast"></div>
 <script>
 // ===== State =====
-var dishes=[], categories=['家常菜','汤','凉菜','主食','甜品','其他'], deletedIds=[];
+var dishes=[], categories=['主菜','配菜','汤品','主食','凉菜','甜品'], deletedIds=[];
 var currentView='grid', currentCat='', editingId=null, currentPhoto='';
 var lastFetchTime=0, pollTimer=null, syncTimeout=null, isFetching=false, backoffUntil=0;
 var currentRandomId=null;
 
 // ===== Constants =====
-var APP_VERSION=18;
+var APP_VERSION=19;
 var SYNC_TOPIC='pupumenu-fresh-0813';
 var POLL_INTERVAL=30000;
 
@@ -262,13 +282,60 @@ function saveData(){
 // ===== Render =====
 function renderAll(){renderCats();renderContent()}
 function renderCats(){
-  var html='<button class="cat-chip'+(currentCat===''?' active':'')+'" onclick="selectCat(\'\')">全部</button>';
+  var total=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0}).length;
+  var html='<button class="cat-chip'+(currentCat===''?' active':'')+'" onclick="selectCat(\'\')">🐾 全部 <span class="cnt">'+total+'</span></button>';
   categories.forEach(function(c){
-    html+='<button class="cat-chip'+(currentCat===c?' active':'')+'" onclick="selectCat(\''+esc(c)+'\')">'+esc(c)+'</button>';
+    var cnt=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0&&d.category===c}).length;
+    html+='<button class="cat-chip'+(currentCat===c?' active':'')+'" onclick="selectCat(\''+esc(c)+'\')">'+esc(c)+' <span class="cnt">'+cnt+'</span></button>';
   });
+  html+='<button class="cat-edit" onclick="openCatMgr()" title="管理分类">＋</button>';
   $('catBar').innerHTML=html;
   var dl=$('catList');dl.innerHTML='';
   categories.forEach(function(c){dl.innerHTML+='<option value="'+esc(c)+'">'});
+}
+function openCatMgr(){
+  var html='<div class="catmgr-list">';
+  categories.forEach(function(c,i){
+    var cnt=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0&&d.category===c}).length;
+    html+='<div class="catmgr-row">'+
+      '<input type="text" value="'+esc(c)+'" data-idx="'+i+'" class="catmgr-input">'+
+      '<span class="catmgr-cnt">'+cnt+'道</span>'+
+      '<button class="catmgr-del" onclick="deleteCat('+i+')" title="删除分类">✕</button>'+
+    '</div>';
+  });
+  html+='<button class="catmgr-add" onclick="addCatRow()">＋ 添加新分类</button>';
+  html+='</div>';
+  showModal('分类管理',html,[
+    {txt:'取消',cls:'btn-cancel',fn:closeModal},
+    {txt:'保存',cls:'btn-primary',fn:function(){
+      var inputs=document.querySelectorAll('.catmgr-input');
+      var newNames=[];
+      inputs.forEach(function(inp){var v=inp.value.trim();if(v&&newNames.indexOf(v)<0)newNames.push(v)});
+      if(newNames.length===0){toast('至少保留一个分类');return}
+      var oldToNew={};
+      inputs.forEach(function(inp,idx){
+        var old=categories[idx],neu=inp.value.trim();
+        if(neu&&old!==neu)oldToNew[old]=neu;
+      });
+      categories=newNames;
+      dishes.forEach(function(d){
+        if(d.category&&oldToNew[d.category])d.category=oldToNew[d.category];
+        else if(d.category&&newNames.indexOf(d.category)<0)d.category=newNames[0]||'';
+      });
+      if(currentCat&&newNames.indexOf(currentCat)<0)currentCat='';
+      saveData();renderAll();scheduleSync();closeModal();toast('已保存');
+    }}
+  ]);
+}
+function addCatRow(){openCatMgr()}
+function deleteCat(i){
+  if(categories.length<=1){toast('至少保留一个分类');return}
+  var removed=categories[i];
+  if(!confirm('删除分类「'+removed+'」？该分类下的菜会归到第一个分类。'))return;
+  categories.splice(i,1);
+  dishes.forEach(function(d){if(d.category===removed)d.category=categories[0]||''});
+  if(currentCat===removed)currentCat='';
+  saveData();renderAll();scheduleSync();closeModal();
 }
 function selectCat(c){currentCat=c;renderCats();renderContent()}
 function getFiltered(){
@@ -293,7 +360,7 @@ function renderContent(){
 function renderGrid(){
   var f=getFiltered(),area=$('content');
   if(f.length===0){
-    area.innerHTML='<div class="empty"><img src="cat.png?v=18" alt=""><h3>'+(dishes.length===0?'还没有菜品':'没找到匹配的菜')+'</h3><p>'+(dishes.length===0?'点右上角添加，把做过的菜拍下来':'换个关键词试试')+'</p>'+(dishes.length===0?'<button class="btn-add" onclick="openAddModal()">➕ 添加第一道菜</button>':'')+'</div>';
+    area.innerHTML='<div class="empty"><img src="cat.png?v=19" alt=""><h3>'+(dishes.length===0?'还没有菜品':'没找到匹配的菜')+'</h3><p>'+(dishes.length===0?'点右上角添加，把做过的菜拍下来':'换个关键词试试')+'</p>'+(dishes.length===0?'<button class="btn-add" onclick="openAddModal()">➕ 添加第一道菜</button>':'')+'</div>';
     return;
   }
   var html='<div class="dgrid">';
@@ -319,12 +386,12 @@ function renderGrid(){
 function renderMenu(){
   var f=getFiltered(),area=$('content');
   if(f.length===0){
-    area.innerHTML='<div class="empty"><img src="cat.png?v=18" alt=""><h3>菜单是空的</h3><p>在卡片界面点 + 号把菜加入菜单</p></div>';
+    area.innerHTML='<div class="empty"><img src="cat.png?v=19" alt=""><h3>菜单是空的</h3><p>在卡片界面点 + 号把菜加入菜单</p></div>';
     return;
   }
   var g={};
   f.forEach(function(d){var c=d.category||'未分类';if(!g[c])g[c]=[];g[c].push(d)});
-  var html='<div class="mv"><h2>今日菜单</h2><div class="mv-sub">— 好好吃饭，慢慢相爱 —</div>';
+  var html='<div class="mv"><div class="mv-empty-line">— · —</div><h2>噗噗专属菜单</h2><div class="mv-sub">好好吃饭，慢慢相爱</div>';
   Object.keys(g).forEach(function(c){
     html+='<div class="msec"><div class="mst">🐾 '+esc(c)+'</div>';
     g[c].forEach(function(d){
@@ -343,12 +410,34 @@ function switchView(v){
 }
 
 // ===== CRUD =====
+function showModal(title,bodyHtml,btns){
+  $('modalTitle').textContent=title;
+  var formEl=document.querySelector('#modalBg .modal');
+  var bodyDiv=document.createElement('div');
+  bodyDiv.innerHTML=bodyHtml;
+  var existing=formEl.querySelector('.modal-body, .catmgr-list');
+  if(existing)existing.remove();
+  bodyDiv.className='modal-body';
+  var titleEl=$('modalTitle');
+  titleEl.parentNode.insertBefore(bodyDiv,titleEl.nextSibling);
+  $('delBtn').style.display='none';
+  var btnsEl=$('modalBtns')||document.querySelector('.modal-btns');
+  btnsEl.innerHTML='';
+  (btns||[{txt:'关闭',cls:'btn-cancel',fn:closeModal}]).forEach(function(b){
+    var btn=document.createElement('button');
+    btn.className='btn '+b.cls;btn.textContent=b.txt;btn.onclick=b.fn;
+    btnsEl.appendChild(btn);
+  });
+  $('modalBg').classList.add('show');
+}
 function openAddModal(){
   editingId=null;currentPhoto='';
   $('modalTitle').textContent='添加菜品';
   $('dishName').value='';$('dishCat').value='';$('dishDesc').value='';$('dishTags').value='';
   $('photoPreview').innerHTML='📷 点击上传照片';
   $('delBtn').style.display='none';
+  var mb=document.querySelector('#modalBg .modal-body');if(mb)mb.remove();
+  $('modalBtns').innerHTML='<button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDish()">保存</button>';
   $('modalBg').classList.add('show');
 }
 function editDish(id){
@@ -362,9 +451,17 @@ function editDish(id){
   $('dishTags').value=(d.tags||[]).join(', ');
   $('photoPreview').innerHTML=currentPhoto?'<img src="'+currentPhoto+'">':'📷 点击上传照片';
   $('delBtn').style.display='block';
+  var mb=document.querySelector('#modalBg .modal-body');if(mb)mb.remove();
+  $('modalBtns').innerHTML='<button class="btn btn-danger" id="delBtn" onclick="deleteDishFromModal()">删除</button><button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDish()">保存</button>';
   $('modalBg').classList.add('show');
 }
-function closeModal(){$('modalBg').classList.remove('show')}
+function toast(msg){
+  var t=$('toast');if(!t)return;
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t=setTimeout(function(){t.classList.remove('show')},1800);
+}
+function closeModal(){$('modalBg').classList.remove('show');var mb=document.querySelector('#modalBg .modal-body');if(mb)mb.remove()}
 function saveDish(){
   var name=$('dishName').value.trim();
   if(!name){showToast('请输入菜名');return}
@@ -537,7 +634,7 @@ function init(){
     if(savedVer>0){location.reload();return}
   }
   loadData();
-  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js?v=18').catch(function(e){console.log('SW err',e)})}
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js?v=19').catch(function(e){console.log('SW err',e)})}
   renderAll();
   syncPull();
   startPolling();
