@@ -1,5 +1,5 @@
-const CACHE_NAME = 'dish-menu-v7';
-const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './cat.png', './favicon.png'];
+const CACHE_NAME = 'dish-menu-v8';
+const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './cat.png', './cat-small.png', './paw.png', './favicon.png'];
 
 self.addEventListener('install', function(e) {
   self.skipWaiting();

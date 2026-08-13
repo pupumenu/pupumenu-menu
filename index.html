@@ -944,42 +944,47 @@ body::before{
   font-family:inherit;
 }
 
-/* FAB 随机选菜 */
+/* FAB 随机选菜 - 爱心猫爪掌 */
 .rp{
   position:fixed;
-  bottom:24px;
-  right:24px;
-  width:60px;
-  height:60px;
+  bottom:22px;
+  right:22px;
+  width:72px;
+  height:72px;
   border-radius:50%;
-  background:linear-gradient(135deg,var(--primary),var(--pd));
-  color:#FFFDF7;
-  border:none;
-  font-size:26px;
+  background:#FFFDF7;
+  border:2.5px solid var(--primary);
   cursor:pointer;
-  box-shadow:0 6px 24px rgba(160,119,87,.4);
+  box-shadow:0 6px 22px rgba(160,119,87,.32),0 2px 6px rgba(160,119,87,.18);
   z-index:50;
   transition:all .3s;
   display:flex;
   align-items:center;
   justify-content:center;
+  padding:8px;
+  overflow:hidden;
 }
 .rp::before{
   content:'';
   position:absolute;
-  inset:-4px;
+  inset:-6px;
   border-radius:50%;
-  border:2px dashed rgba(160,119,87,.3);
-  animation:spin 8s linear infinite;
-}
-@keyframes spin{
-  to{transform:rotate(360deg)}
+  border:2px dashed rgba(160,119,87,.32);
+  animation:spin 10s linear infinite;
+  pointer-events:none;
 }
 .rp:hover{
-  transform:scale(1.08) rotate(-15deg);
+  transform:scale(1.08) rotate(-8deg);
+  box-shadow:0 10px 30px rgba(160,119,87,.42),0 3px 8px rgba(160,119,87,.22);
 }
 .rp:hover::before{
   animation-play-state:paused;
+}
+.rp-paw{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  pointer-events:none;
 }
 
 /* 随机选菜弹窗 */
@@ -1232,7 +1237,7 @@ body::before{
 <div class="cbar" id="cbar"></div>
 <div class="sbar" id="sbar"></div>
 <div id="content-area"></div>
-<button class="rp" onclick="randomPick()" title="今天吃什么？">🎲</button>
+<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么"><img class="rp-paw" src="paw.png" alt="随机选菜"></button>
 
 <!-- 菜品弹窗 -->
 <div class="mo" id="dish-modal">
