@@ -1,11 +1,12 @@
 {
-  "name": "我的私房菜谱",
-  "short_name": "私房菜谱",
-  "description": "拍下来，分好类，想吃就翻",
+  "name": "噗噗专属菜单",
+  "short_name": "噗噗菜单",
+  "description": "好好吃饭，慢慢相爱",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#faf6f0",
-  "theme_color": "#d4683f",
+  "background_color": "#F7EFE0",
+  "theme_color": "#A07757",
   "orientation": "portrait",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
