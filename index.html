@@ -96,9 +96,12 @@ body::before{
   height:60px;
   flex-shrink:0;
   border-radius:50%;
-  object-fit:cover;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:32px;
   filter:drop-shadow(0 2px 4px rgba(124,84,54,.15));
-  background:#FFFDF7;
+  background:linear-gradient(135deg,#FFFDF7,#F0E3CB);
 }
 .brand-text h1{
   font-size:20px;
@@ -717,13 +720,16 @@ body::before{
   z-index:1;
 }
 .empty .ei{
-  width:140px;
-  height:140px;
+  width:100px;
+  height:100px;
   margin:0 auto 18px;
   border-radius:50%;
-  object-fit:cover;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:48px;
   filter:drop-shadow(0 4px 12px rgba(124,84,54,.18));
-  background:#FFFDF7;
+  background:linear-gradient(135deg,#FFFDF7,#F0E3CB);
 }
 .empty h3{
   font-size:18px;
@@ -1203,9 +1209,7 @@ body::before{
 <div class="header">
   <div class="header-inner">
     <div class="brand">
-      <!-- 噗噗家的小豆泥 -->
-      <img class="brand-cat" src="cat.png?v=9" alt="小豆泥">
-
+      <div class="brand-cat">🐱</div>
       <div class="brand-text">
         <h1>噗噗专属菜单</h1>
         <div class="subtitle">好好吃饭，慢慢相爱</div>
@@ -1213,10 +1217,6 @@ body::before{
     </div>
 
     <div class="ha">
-      <button class="sync-btn" onclick="openSyncModal()" title="云同步">
-        <span class="sync-dot" id="sync-dot"></span>
-        <span id="sync-label">未连接</span>
-      </button>
       <button class="btn-icon" onclick="shareMenuFile()" title="分享文件">📤</button>
       <button class="btn-icon" onclick="document.getElementById('import-file').click()" title="导入">📥</button>
       <button class="btn-icon" onclick="openCategoryModal()" title="分类">🏷️</button>
@@ -1237,7 +1237,7 @@ body::before{
 <div class="cbar" id="cbar"></div>
 <div class="sbar" id="sbar"></div>
 <div id="content-area"></div>
-<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么"><img class="rp-paw" src="paw.png?v=9" alt="随机选菜"></button>
+<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么">🎲</button>
 
 <!-- 菜品弹窗 -->
 <div class="mo" id="dish-modal">
@@ -1272,23 +1272,14 @@ body::before{
   </div>
 </div>
 
-<!-- 同步弹窗 -->
-<div class="mo" id="sync-modal">
-  <div class="modal">
-    <h2>☁️ 云同步</h2>
-    <div id="sync-content"></div>
-  </div>
-</div>
-
 <!-- 随机选菜 -->
 <div class="rr" id="random-result"><div class="rrc" id="random-card"></div></div>
 
 <script>
 // ===== Data =====
-const SK='dish_menu_v3',CK='dish_cats_v3',DK='dish_deleted_v3',RK='dish_room_v3',SI='dish_sender_v3';
+const SK='dish_menu_v3',CK='dish_cats_v3',DK='dish_deleted_v3',SI='dish_sender_v3';
 let dishes=[],categories=['主菜','配菜','汤品','主食','凉菜','甜品','饮品'],deletedIds=[];
 let currentView='grid',currentCategory='all',editingId=null,currentPhoto=null,currentPhotoSync=null,currentTags=[];
-let eventSource=null,syncTimeout=null,lastSyncTime=0,pollTimer=null,lastSyncSuccess=0;
 
 function loadData(){
   try{
@@ -1306,7 +1297,6 @@ function loadData(){
 }
 function saveData(){localStorage.setItem(SK,JSON.stringify(dishes));localStorage.setItem(CK,JSON.stringify(categories));localStorage.setItem(DK,JSON.stringify(deletedIds))}
 function getSenderId(){let id=localStorage.getItem(SI);if(!id){id='s_'+Math.random().toString(36).slice(2,10);localStorage.setItem(SI,id)}return id}
-function getRoomCode(){return localStorage.getItem(RK)||localStorage.getItem('dish_room_v2')}
 
 // ===== Photo =====
 function compressImage(file,maxW,q,cb){
@@ -1338,7 +1328,7 @@ function renderGrid(){
   const f=getFiltered(),area=document.getElementById('content-area');
   if(f.length===0){
     area.innerHTML='<div class="empty">'+
-      '<img class="ei" src="cat.png?v=9" alt="小豆泥">'+
+      '<div class="ei">🍽️</div>'+
       '<h3>'+(dishes.length===0?'还没有菜品哦':'没找到匹配的菜')+'</h3>'+
       '<p>'+(dishes.length===0?'点右上角「➕ 添加」，把做过的菜拍下来':'换个关键词或分类试试')+'</p>'+
       (dishes.length===0?'<button class="btn btn-p" onclick="openAddModal()" style="border-radius:20px">➕ 添加第一道菜</button>':'')+
@@ -1504,111 +1494,34 @@ function importData(e){
   r.readAsText(f);e.target.value='';
 }
 
-// ===== Cloud Sync (ntfy.sh - polling mode) =====
-function updateSyncStatus(status){
-  const dot=document.getElementById('sync-dot'),label=document.getElementById('sync-label');
-  dot.className='sync-dot';
-  if(status==='connected'){
-    dot.classList.add('on');
-    let t=lastSyncSuccess?new Date(lastSyncSuccess).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}):'';
-    label.textContent=t?('已同步 '+t):'已连接';
-  }
-  else if(status==='syncing'){dot.classList.add('syncing');label.textContent='同步中…'}
-  else if(status==='error'){label.textContent='同步失败 点重试'}
-  else{label.textContent='未连接'}
-}
-function generateRoomCode(){
-  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code='DISH-';
-  for(let i=0;i<4;i++)code+=chars[Math.floor(Math.random()*chars.length)];
-  return code;
-}
-function openSyncModal(){renderSyncModal();document.getElementById('sync-modal').classList.add('show')}
-function closeSyncModal(){document.getElementById('sync-modal').classList.remove('show')}
-function renderSyncModal(){
-  const room=getRoomCode(),content=document.getElementById('sync-content');
-  if(room){
-    let syncInfo='';
-    if(lastSyncSuccess){let d=new Date(lastSyncSuccess);syncInfo='上次同步 '+d.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}
-    else{syncInfo='尚未成功同步过'}
-    content.innerHTML=
-      '<div class="sync-room-box">'+
-        '<div class="sync-label">— 当前房间码 —</div>'+
-        '<div class="sync-room-code">'+room+'</div>'+
-        '<button class="btn btn-p btn-sm" onclick="copyRoomCode()">📋 复制房间码</button>'+
-        '<div class="sync-info">'+syncInfo+'</div>'+
-      '</div>'+
-      '<div class="sync-option">'+
-        '<button class="create-btn" onclick="manualSync()">🔄 立即同步</button>'+
-        '<button class="leave-btn" onclick="leaveRoom()">离开房间</button>'+
-      '</div>'+
-      '<div class="sync-info-box">'+
-        '<strong>同步说明：</strong><br>'+
-        '• 添加/修改菜品后自动上传<br>'+
-        '• 每20秒自动检查对方更新<br>'+
-        '• 点「立即同步」可手动强制同步<br>'+
-        '• 切回App前台时自动同步一次<br>'+
-        '• 照片会压缩后同步，可能不如原图清晰'
-      '</div>';
-  }else{
-    content.innerHTML=
-      '<div style="text-align:center;color:var(--tl);font-size:14px;margin-bottom:8px;letter-spacing:1px">🐾 两人共享同一份菜谱 ✦ 自动同步</div>'+
-      '<div class="sync-option">'+
-        '<button class="create-btn" onclick="createRoom()">🏠 创建房间</button>'+
-        '<button class="join-btn" onclick="showJoinInput()">🔗 加入房间</button>'+
-      '</div>'+
-      '<div id="join-area"></div>'+
-      '<div class="sync-info-box">'+
-        '<strong>使用说明：</strong><br>'+
-        '1️⃣ 一人创建房间，获得房间码<br>'+
-        '2️⃣ 另一人输入房间码加入<br>'+
-        '3️⃣ 之后两人添加/修改菜品自动同步<br>'+
-        '4️⃣ 不想同步了随时可以离开房间'
-      '</div>';
-  }
-}
-function copyRoomCode(){const room=getRoomCode();if(navigator.clipboard){navigator.clipboard.writeText(room).then(()=>alert('房间码已复制：'+room))}else{alert('房间码：'+room)}}
-function createRoom(){const code=generateRoomCode();localStorage.setItem(RK,code);renderSyncModal();syncToCloud();startPolling();updateSyncStatus('connected');alert('房间已创建！房间码：'+code+'\n\n把这个码发给对方，对方在 App 里输入即可同步')}
-function showJoinInput(){document.getElementById('join-area').innerHTML='<div class="sync-join-input"><input type="text" id="join-code" placeholder="输入房间码" maxlength="9"><button class="btn btn-p btn-sm" onclick="joinRoom()">加入</button></div>';setTimeout(()=>document.getElementById('join-code').focus(),100)}
-async function joinRoom(){
-  const code=(document.getElementById('join-code').value||'').trim().toUpperCase();
-  if(!code){alert('请输入房间码');return}
-  localStorage.setItem(RK,code);updateSyncStatus('syncing');renderSyncModal();
-  await fetchFromCloud();startPolling();updateSyncStatus('connected');
-  alert('已加入房间 '+code+'！');closeSyncModal();
-}
-function leaveRoom(){if(!confirm('离开房间后将不再自动同步，确定？'))return;localStorage.removeItem(RK);localStorage.removeItem('dish_room_v2');if(pollTimer){clearInterval(pollTimer);pollTimer=null}updateSyncStatus('disconnected');renderSyncModal()}
-async function manualSync(){updateSyncStatus('syncing');await syncToCloud();await fetchFromCloud();updateSyncStatus(lastSyncSuccess>0?'connected':'error');renderSyncModal()}
+// ===== 无感自动同步 (ntfy.sh) =====
+const SYNC_TOPIC='pupumenu-dish-7f3a9b2e8c';
+const SYNC_URL='https://ntfy.sh/'+SYNC_TOPIC;
+let syncTimer=null,pollTimer=null;
 
 function prepareSyncPayload(){
   const payload={dishes:dishes.map(d=>({id:d.id,name:d.name,category:d.category,desc:d.desc,photo:d.photoSync||d.photo||null,tags:d.tags||[],createdAt:d.createdAt,updatedAt:d.updatedAt,order:d.order||d.createdAt})),categories:categories,deletedIds:deletedIds,lastUpdated:Date.now(),senderId:getSenderId()};
   let size=new Blob([JSON.stringify(payload)]).size;
-  if(size>200000){payload.dishes=payload.dishes.map(d=>({...d,photo:null}));console.warn('Sync payload too large ('+size+'), photos removed')}
+  if(size>200000){payload.dishes=payload.dishes.map(d=>({...d,photo:null}))}
   return payload;
 }
 async function syncToCloud(){
-  const room=getRoomCode();if(!room)return;
-  updateSyncStatus('syncing');const payload=prepareSyncPayload();
+  const payload=prepareSyncPayload();
   try{
-    const resp=await fetch('https://ntfy.sh/'+room,{method:'POST',headers:{'TTL':'604800','Content-Type':'application/json'},body:JSON.stringify(payload)});
-    if(resp.ok){lastSyncTime=payload.lastUpdated;lastSyncSuccess=Date.now();updateSyncStatus('connected')}
-    else{console.error('Sync failed:',resp.status);updateSyncStatus('error')}
-  }catch(err){console.error('Sync error:',err);updateSyncStatus('error')}
+    await fetch(SYNC_URL,{method:'POST',headers:{'TTL':'604800','Content-Type':'application/json'},body:JSON.stringify(payload)});
+  }catch(err){}
 }
-function scheduleSync(){if(syncTimeout)clearTimeout(syncTimeout);syncTimeout=setTimeout(()=>syncToCloud(),2000)}
+function scheduleSync(){if(syncTimer)clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncToCloud(),1500)}
 async function fetchFromCloud(){
-  const room=getRoomCode();if(!room)return;
   try{
-    const resp=await fetch('https://ntfy.sh/'+room+'/json?poll=1&since=all');
+    const resp=await fetch(SYNC_URL+'/json?poll=1&since=all');
     const text=await resp.text();const lines=text.trim().split('\n').filter(l=>l);
-    if(lines.length===0){lastSyncSuccess=Date.now();return}
+    if(lines.length===0)return;
     let latest=null,latestTime=0;
     for(const line of lines){try{const msg=JSON.parse(line);if(msg.event==='message'&&msg.message){const data=JSON.parse(msg.message);if(data.lastUpdated>latestTime){latestTime=data.lastUpdated;latest=data}}}catch(e){}}
     if(latest&&latest.senderId!==getSenderId()){mergeSyncData(latest)}
-    lastSyncSuccess=Date.now();
-  }catch(err){console.error('Fetch error:',err)}
+  }catch(err){}
 }
-function startPolling(){if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(()=>fetchFromCloud(),20000)}
 function mergeSyncData(incoming){
   if(!incoming)return;let changed=false;
   if(incoming.deletedIds){incoming.deletedIds.forEach(id=>{if(!deletedIds.includes(id))deletedIds.push(id);if(dishes.some(d=>d.id===id)){dishes=dishes.filter(d=>d.id!==id);changed=true}})}
@@ -1626,33 +1539,30 @@ function mergeSyncData(incoming){
 function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 document.getElementById('dish-modal').addEventListener('click',function(e){if(e.target===this)closeModal()});
 document.getElementById('cat-modal').addEventListener('click',function(e){if(e.target===this)closeCatModal()});
-document.getElementById('sync-modal').addEventListener('click',function(e){if(e.target===this)closeSyncModal()});
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeCatModal();closeSyncModal();closeRandom()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closeCatModal();closeRandom()}});
 
 // ===== Init =====
 loadData();
 renderDishes();
 
 // App 版本号 - 部署时 +1，强制清旧缓存
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 if('serviceWorker' in navigator){
-  // 检查版本变更，强制刷新一次
   const lastVersion = localStorage.getItem('app_version');
   if(!lastVersion || parseInt(lastVersion) < APP_VERSION){
     localStorage.setItem('app_version', String(APP_VERSION));
-    // 清掉所有缓存（serviceWorker + HTTP cache）
     if('caches' in window){
       caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
     }
-    // 强制重新加载一次
     if(!lastVersion){location.reload()}
   } else {
-    navigator.serviceWorker.register('./sw.js?v=9').catch(function(e){console.log('SW error:',e)});
+    navigator.serviceWorker.register('./sw.js?v=10').catch(function(e){});
   }
 }
-if(getRoomCode()){startPolling();fetchFromCloud()}
-document.addEventListener('visibilitychange',function(){if(!document.hidden&&getRoomCode()){fetchFromCloud();updateSyncStatus(lastSyncSuccess>0?'connected':'disconnected')}});
-setInterval(function(){if(getRoomCode()&&!document.hidden){fetchFromCloud()}},120000);
+// 无感自动同步：打开就拉取，定时轮询，回前台拉取
+fetchFromCloud();
+pollTimer=setInterval(()=>{if(!document.hidden)fetchFromCloud()},15000);
+document.addEventListener('visibilitychange',function(){if(!document.hidden)fetchFromCloud()});
 </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'dish-menu-v9';
-const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './cat.png', './cat-v3.png', './paw.png', './favicon.png'];
+const CACHE_NAME = 'dish-menu-v10';
+const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './favicon.png'];
 
 self.addEventListener('install', function(e) {
   self.skipWaiting();
@@ -16,7 +16,6 @@ self.addEventListener('fetch', function(e) {
   var url = new URL(e.request.url);
   if (url.hostname === 'ntfy.sh') return;
   if (url.origin === self.location.origin) {
-    // Cache-busting: 忽略 URL 上的 ?v=N，让 SW 能命中缓存
     var cleanUrl = url.pathname;
     var cacheKey = url.origin + cleanUrl;
     if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('.png')) {
