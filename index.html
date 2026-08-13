@@ -1632,7 +1632,25 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal(
 // ===== Init =====
 loadData();
 renderDishes();
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(e){console.log('SW error:',e)})}
+
+// App 版本号 - 部署时 +1，强制清旧缓存
+const APP_VERSION = 9;
+if('serviceWorker' in navigator){
+  // 检查版本变更，强制刷新一次
+  const lastVersion = localStorage.getItem('app_version');
+  if(lastVersion && parseInt(lastVersion) < APP_VERSION){
+    localStorage.setItem('app_version', String(APP_VERSION));
+    // 清掉所有缓存（serviceWorker + HTTP cache）
+    if('caches' in window){
+      caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
+    }
+    // 强制重新加载一次
+    location.reload();
+  } else {
+    localStorage.setItem('app_version', String(APP_VERSION));
+    navigator.serviceWorker.register('./sw.js?v=9').catch(function(e){console.log('SW error:',e)});
+  }
+}
 if(getRoomCode()){startPolling();fetchFromCloud()}
 document.addEventListener('visibilitychange',function(){if(!document.hidden&&getRoomCode()){fetchFromCloud();updateSyncStatus(lastSyncSuccess>0?'connected':'disconnected')}});
 setInterval(function(){if(getRoomCode()&&!document.hidden){fetchFromCloud()}},120000);
