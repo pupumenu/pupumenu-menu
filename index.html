@@ -1028,7 +1028,7 @@ body::before{
 /* FAB 随机选菜 - 爱心猫爪掌 */
 .rp{
   position:fixed;
-  bottom:22px;
+  bottom:90px;
   right:22px;
   width:72px;
   height:72px;
@@ -1275,7 +1275,7 @@ body::before{
   .ha .btn:not(.sync-btn){padding:7px 10px;font-size:11px}
   .sync-btn{padding:6px 10px;font-size:11px}
   .mp h2{font-size:22px;letter-spacing:2px}
-  .rp{bottom:18px;right:18px;width:54px;height:54px;font-size:22px}
+  .rp{bottom:82px;right:18px;width:54px;height:54px;font-size:22px}
 }
 </style>
 </head>
@@ -1696,7 +1696,7 @@ loadData();
 renderDishes();
 
 // App 版本号 - 部署时 +1，强制清旧缓存
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 if('serviceWorker' in navigator){
   const lastVersion = localStorage.getItem('app_version');
   if(!lastVersion || parseInt(lastVersion) < APP_VERSION){
@@ -1706,7 +1706,7 @@ if('serviceWorker' in navigator){
     }
     if(!lastVersion){location.reload()}
   } else {
-    navigator.serviceWorker.register('./sw.js?v=16').catch(function(e){console.log('SW error:',e)});
+    navigator.serviceWorker.register('./sw.js?v=17').catch(function(e){console.log('SW error:',e)});
   }
 }
 // 无感自动同步：打开就拉取 + 30秒轮询 + 回前台拉取
