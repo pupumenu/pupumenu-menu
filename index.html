@@ -1210,7 +1210,7 @@ body::before{
   <div class="header-inner">
     <div class="brand">
       <!-- 噗噗家的小豆泥 -->
-      <img class="brand-cat" src="cat.png?v=11" alt="小豆泥">
+      <img class="brand-cat" src="cat.png?v=12" alt="小豆泥">
 
       <div class="brand-text">
         <h1>噗噗专属菜单</h1>
@@ -1239,7 +1239,7 @@ body::before{
 <div class="cbar" id="cbar"></div>
 <div class="sbar" id="sbar"></div>
 <div id="content-area"></div>
-<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么"><img class="rp-paw" src="paw.png?v=11" alt="随机选菜"></button>
+<button class="rp" onclick="randomPick()" title="今天吃什么？" aria-label="今天吃什么"><img class="rp-paw" src="paw.png?v=12" alt="随机选菜"></button>
 
 <!-- 菜品弹窗 -->
 <div class="mo" id="dish-modal">
@@ -1331,7 +1331,7 @@ function renderGrid(){
   const f=getFiltered(),area=document.getElementById('content-area');
   if(f.length===0){
     area.innerHTML='<div class="empty">'+
-      '<img class="ei" src="cat.png?v=11" alt="小豆泥">'+
+      '<img class="ei" src="cat.png?v=12" alt="小豆泥">'+
       '<h3>'+(dishes.length===0?'还没有菜品哦':'没找到匹配的菜')+'</h3>'+
       '<p>'+(dishes.length===0?'点右上角「➕ 添加」，把做过的菜拍下来':'换个关键词或分类试试')+'</p>'+
       (dishes.length===0?'<button class="btn btn-p" onclick="openAddModal()" style="border-radius:20px">➕ 添加第一道菜</button>':'')+
@@ -1530,6 +1530,7 @@ function mergeSyncData(incoming){
   if(incoming.deletedIds){incoming.deletedIds.forEach(id=>{if(!deletedIds.includes(id))deletedIds.push(id);if(dishes.some(d=>d.id===id)){dishes=dishes.filter(d=>d.id!==id);changed=true}})}
   const localMap=new Map(dishes.map(d=>[d.id,d]));
   for(const inc of(incoming.dishes||[])){
+    if(deletedIds.includes(inc.id))continue;
     const loc=localMap.get(inc.id);
     if(!loc||(inc.updatedAt||0)>(loc.updatedAt||0)){localMap.set(inc.id,{...inc,photo:inc.photo||null,photoSync:inc.photo||null});changed=true}
   }
@@ -1549,7 +1550,7 @@ loadData();
 renderDishes();
 
 // App 版本号 - 部署时 +1，强制清旧缓存
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 if('serviceWorker' in navigator){
   const lastVersion = localStorage.getItem('app_version');
   if(!lastVersion || parseInt(lastVersion) < APP_VERSION){
@@ -1559,7 +1560,7 @@ if('serviceWorker' in navigator){
     }
     if(!lastVersion){location.reload()}
   } else {
-    navigator.serviceWorker.register('./sw.js?v=11').catch(function(e){console.log('SW error:',e)});
+    navigator.serviceWorker.register('./sw.js?v=12').catch(function(e){console.log('SW error:',e)});
   }
 }
 // 无感自动同步：打开就拉取 + 定时轮询 + 回前台拉取
