@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dish-menu-v22';
+const CACHE_NAME = 'dish-menu-v23';
 const ASSETS = ['./manifest.json', './icon-192.png', './icon-512.png', './cat.png', './paw.png'];
 
 self.addEventListener('install', function(e) {
