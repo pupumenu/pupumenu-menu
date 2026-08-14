@@ -24,7 +24,7 @@ body{
 }
 body::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-  background-image:url('paw.png?v=21');background-repeat:repeat;
+  background-image:url('paw.png?v=22');background-repeat:repeat;
   background-size:90px;opacity:.05;
 }
 header{
@@ -98,6 +98,13 @@ header{
 .mv h2{font-size:22px;color:var(--primary);text-align:center;margin-bottom:4px;font-weight:700}
 .mv-sub{text-align:center;font-size:12px;color:var(--tl2);margin-bottom:14px;letter-spacing:1px}
 .mv-sub::before,.mv-sub::after{content:'🌿';margin:0 6px;opacity:.7;font-size:11px}
+.hero-banner{text-align:center;padding:18px 16px 12px;max-width:680px;margin:0 auto}
+.hero-banner .mv-empty-line{font-size:11px;color:var(--tl2);letter-spacing:8px;margin-bottom:8px}
+.hero-banner h2{font-size:22px;color:var(--primary);margin-bottom:4px;font-weight:700}
+.hero-banner .mv-sub{font-size:12px;color:var(--tl2);letter-spacing:1px}
+.menu-toolbar{display:flex;justify-content:center;align-items:center;gap:10px;max-width:680px;margin:0 auto 10px;padding:0 16px}
+.menu-clear-btn{background:rgba(180,90,60,.1);color:#a85a3c;border:1.5px solid rgba(180,90,60,.3);padding:6px 14px;border-radius:18px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
+.menu-clear-btn:hover{background:rgba(180,90,60,.2)}
 .mv-empty-line{text-align:center;font-size:11px;color:var(--tl2);margin:0 0 14px 0;letter-spacing:2px}
 .msec{margin-bottom:14px}
 .mst{font-size:13px;font-weight:600;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px}
@@ -200,9 +207,14 @@ header{
 </head>
 <body>
 <header>
-  <div class="logo"><img src="cat.png?v=21" alt="logo"><span>噗噗菜单</span></div>
+  <div class="logo"><img src="cat.png?v=22" alt="logo"><span>噗噗菜单</span></div>
   <button class="btn-add" onclick="openAddModal()">➕ 添加</button>
 </header>
+<div class="hero-banner">
+  <div class="mv-empty-line">— · —</div>
+  <h2>噗噗专属菜单</h2>
+  <div class="mv-sub">好好吃饭，慢慢相爱</div>
+</div>
 <div class="search-bar"><input type="text" id="searchInput" placeholder="搜菜名、标签..." oninput="renderContent()"></div>
 <div class="cat-bar" id="catBar"></div>
 <div id="content"></div>
@@ -210,7 +222,7 @@ header{
   <button class="tab active" id="tabGrid" onclick="switchView('grid')"><span class="tab-icon">🎴</span>卡片</button>
   <button class="tab" id="tabMenu" onclick="switchView('menu')"><span class="tab-icon">📋</span>菜单</button>
 </div>
-<button class="fab" onclick="randomPick()"><img src="paw.png?v=21" alt="随机"></button>
+<button class="fab" onclick="randomPick()"><img src="paw.png?v=22" alt="随机"></button>
 <div class="modal-bg" id="modalBg">
   <div class="modal">
     <h3 id="modalTitle">添加菜品</h3>
@@ -245,7 +257,7 @@ var lastFetchTime=0, pollTimer=null, syncTimeout=null, isFetching=false, backoff
 var currentRandomId=null;
 
 // ===== Constants =====
-var APP_VERSION=21;
+var APP_VERSION=22;
 var SYNC_TOPIC='pupumenu-fresh-0813';
 var POLL_INTERVAL=30000;
 
@@ -372,7 +384,7 @@ function renderContent(){
 function renderGrid(){
   var f=getFiltered(),area=$('content');
   if(f.length===0){
-    area.innerHTML='<div class="empty"><img src="cat.png?v=21" alt=""><h3>'+(dishes.length===0?'还没有菜品':'没找到匹配的菜')+'</h3><p>'+(dishes.length===0?'点右上角添加，把做过的菜拍下来':'换个关键词试试')+'</p>'+(dishes.length===0?'<button class="btn-add" onclick="openAddModal()">➕ 添加第一道菜</button>':'')+'</div>';
+    area.innerHTML='<div class="empty"><img src="cat.png?v=22" alt=""><h3>'+(dishes.length===0?'还没有菜品':'没找到匹配的菜')+'</h3><p>'+(dishes.length===0?'点右上角添加，把做过的菜拍下来':'换个关键词试试')+'</p>'+(dishes.length===0?'<button class="btn-add" onclick="openAddModal()">➕ 添加第一道菜</button>':'')+'</div>';
     return;
   }
   var html='<div class="dgrid">';
@@ -398,12 +410,13 @@ function renderGrid(){
 function renderMenu(){
   var f=getFiltered(),area=$('content');
   if(f.length===0){
-    area.innerHTML='<div class="empty"><img src="cat.png?v=21" alt=""><h3>菜单是空的</h3><p>在卡片界面点 + 号把菜加入菜单</p></div>';
+    area.innerHTML='<div class="empty"><img src="cat.png?v=22" alt=""><h3>菜单是空的</h3><p>在卡片界面点 + 号把菜加入菜单</p></div>';
     return;
   }
   var g={};
   f.forEach(function(d){var c=d.category||'未分类';if(!g[c])g[c]=[];g[c].push(d)});
-  var html='<div class="mv"><div class="mv-empty-line">— · —</div><h2>噗噗专属菜单</h2><div class="mv-sub">好好吃饭，慢慢相爱</div>';
+  var toolbar='<div class="menu-toolbar"><button class="menu-clear-btn" onclick="clearMenu()">🧹 清空菜单（准备第二天）</button></div>';
+  var html=toolbar+'<div class="mv">';
   Object.keys(g).forEach(function(c){
     html+='<div class="msec"><div class="mst">🐾 '+esc(c)+'</div>';
     g[c].forEach(function(d){
@@ -413,6 +426,14 @@ function renderMenu(){
     html+='</div>';
   });
   area.innerHTML=html+'</div>';
+}
+
+function clearMenu(){
+  if(!confirm('确定要清空菜单吗？\n所有菜会从菜单里移除（菜本身不删），方便明天重新挑选。'))return;
+  var cleared=0;
+  dishes.forEach(function(d){if(d.inMenu){d.inMenu=false;d.updatedAt=Date.now();cleared++}});
+  saveData();syncToCloud();renderContent();
+  toast(cleared>0?'已清空 '+cleared+' 道菜':'菜单已经是空的');
 }
 function switchView(v){
   currentView=v;
@@ -643,7 +664,7 @@ function init(){
     if(savedVer>0){location.reload();return}
   }
   loadData();
-  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js?v=21').catch(function(e){console.log('SW err',e)})}
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js?v=22').catch(function(e){console.log('SW err',e)})}
   renderAll();
   syncPull();
   startPolling();
