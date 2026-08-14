@@ -312,11 +312,7 @@ header{
       <input type="text" id="dishTags" placeholder="如: 快手, 下饭">
     </div>
     <div id="customBody"></div>
-    <div class="modal-btns" id="modalBtns">
-      <button class="btn btn-danger" id="delBtn" style="display:none" onclick="deleteDishFromModal()">删除</button>
-      <button class="btn btn-cancel" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="saveDish()">保存</button>
-    </div>
+    <div class="modal-btns" id="modalBtns"></div>
   </div>
 </div>
 <div class="random-modal" id="randomModal" onclick="if(event.target===this)closeRandom()"><div class="random-card" id="randomCard"></div></div>
@@ -330,7 +326,7 @@ var currentRandomId=null;
 var mqttClient=null, syncStatus='disconnected', roomId='', senderId='';
 var syncTimeout=null, isPushing=false, lastIncomingTs=0;
 // ===== Constants =====
-var APP_VERSION=31;
+var APP_VERSION=32;
 var MQTT_URL='wss://broker.emqx.io:8084/mqtt';
 var STORAGE_KEY='pupumenu_v24';
 
@@ -523,17 +519,7 @@ function renderGrid(){
     var ph=d.photo?'<img class="dphoto" src="'+d.photo+'" loading="lazy">':'<div class="dph">🍽️</div>';
     var tags=(d.tags||[]).slice(0,3).map(function(t){return '<span class="dtag">'+esc(t)+'</span>'}).join('');
     var inMenu=d.inMenu;
-    html+='<div class="dcard" data-id="'+d.id+'" onclick="cardClick(event,\''+d.id+'\')" ontouchstart="cardTouchStart(event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd(event)" ontouchcancel="cardTouchEnd(event)">'+ 
-      '<div class="card-btns">'+ 
-        '<button class="card-btn'+(inMenu?' menu-in':'')+'" onclick="event.stopPropagation();toggleInMenu(\''+d.id+'\')" title="加入菜单">'+(inMenu?'✓':'＋')+'</button>'+ 
-      '</div>'+ 
-      ph+
-      '<div class="dinfo">'+ 
-        '<div class="dname">'+esc(d.name)+'</div>'+ 
-        '<div class="dcat">'+esc(d.category||'未分类')+'</div>'+ 
-        (tags?'<div class="dtags">'+tags+'</div>':'')+ 
-      '</div>'+ 
-    '</div>';
+    html+='<div class="dcard" data-id="'+d.id+'" onclick="cardClick(event,\''+d.id+'\')" ontouchstart="cardTouchStart(event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd(event)" ontouchcancel="cardTouchEnd(event)">'+\n      '<div class="card-btns">'+\n        '<button class="card-btn'+(inMenu?' menu-in':'')+'" onclick="event.stopPropagation();toggleInMenu(\''+d.id+'\')" title="加入菜单">'+(inMenu?'✓':'＋')+'</button>'+\n      '</div>'+\n      ph+\n      '<div class="dinfo">'+\n        '<div class="dname">'+esc(d.name)+'</div>'+\n        '<div class="dcat">'+esc(d.category||'未分类')+'</div>'+\n        (tags?'<div class="dtags">'+tags+'</div>':'')+\n      '</div>'+\n    '</div>';
   });
   area.innerHTML=html+'</div>';
 }
@@ -583,11 +569,10 @@ function switchView(v){
 }
 
 // ===== CRUD =====
-function showModal(title,bodyHtml,btns){
+function showModal(title,bodyHtml,btns,showForm){
   $('modalTitle').textContent=title;
-  $('dishFormBody').style.display='none';
-  $('customBody').innerHTML=bodyHtml||'';
-  $('delBtn').style.display='none';
+  $('dishFormBody').style.display=showForm?'':'none';
+  $('customBody').innerHTML=showForm?'':(bodyHtml||'');
   var btnsEl=$('modalBtns');
   btnsEl.innerHTML='';
   (btns||[{txt:'关闭',cls:'btn-cancel',fn:closeModal}]).forEach(function(b){
@@ -599,29 +584,27 @@ function showModal(title,bodyHtml,btns){
 }
 function openAddModal(){
   editingId=null;currentPhoto='';
-  $('modalTitle').textContent='添加菜品';
-  $('dishFormBody').style.display='';
-  $('customBody').innerHTML='';
   $('dishName').value='';$('dishCat').value='';$('dishDesc').value='';$('dishTags').value='';
   $('photoPreview').innerHTML='📷 点击上传照片';
-  $('delBtn').style.display='none';
-  $('modalBtns').innerHTML='<button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDish()">保存</button>';
-  showOverlay($('modalBg'));
+  showModal('添加菜品','',[
+    {txt:'取消',cls:'btn-cancel',fn:closeModal},
+    {txt:'保存',cls:'btn-primary',fn:saveDish}
+  ],true);
 }
 function editDish(id){
   var d=dishes.find(function(x){return x.id===id});
   if(!d)return;
   editingId=id;currentPhoto=d.photo||'';
-  $('modalTitle').textContent='编辑菜品';
-  $('dishFormBody').style.display='';
-  $('customBody').innerHTML='';
   $('dishName').value=d.name||'';
   $('dishCat').value=d.category||'';
   $('dishDesc').value=d.desc||'';
   $('dishTags').value=(d.tags||[]).join(', ');
   $('photoPreview').innerHTML=currentPhoto?'<img src="'+currentPhoto+'">':'📷 点击上传照片';
-  $('modalBtns').innerHTML='<button class="btn btn-danger" onclick="deleteDishFromModal()">删除</button><button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDish()">保存</button>';
-  showOverlay($('modalBg'));
+  showModal('编辑菜品','',[
+    {txt:'删除',cls:'btn-danger',fn:deleteDishFromModal},
+    {txt:'取消',cls:'btn-cancel',fn:closeModal},
+    {txt:'保存',cls:'btn-primary',fn:saveDish}
+  ],true);
 }
 function closeModal(){
   setTimeout(function(){hideOverlay($('modalBg'))},0);
@@ -793,32 +776,7 @@ function openSyncSettings(){
   var statusText={connected:'已连接，实时同步中',connecting:'正在连接…',disconnected:'未连接（仅本地保存）'}[syncStatus];
   var shareUrl=window.location.origin+window.location.pathname+'?room='+encodeURIComponent(getRoomId());
   var html=
-    '<div class="sync-status">'+ 
-      '<span class="sdot '+({connected:'green',connecting:'yellow',disconnected:'red'}[syncStatus])+'"></span>'+ 
-      '<span class="stext">'+statusText+'</span>'+ 
-    '</div>'+ 
-    '<div class="sync-tip">'+ 
-      '<b>怎么同步？</b><br>'+ 
-      '1. 两台设备用同一个「房间号」<br>'+ 
-      '2. 把下面的链接发给TA，打开就自动同步<br>'+ 
-      '3. 加菜、改菜、加菜单都会实时同步'+ 
-    '</div>'+ 
-    '<label>房间号</label>'+ 
-    '<div class="room-row">'+ 
-      '<input type="text" id="roomInput" value="'+esc(getRoomId())+'" placeholder="输入房间号">'+ 
-      '<button onclick="saveRoom()">保存</button>'+ 
-    '</div>'+ 
-    '<label>分享链接</label>'+ 
-    '<div class="room-row">'+ 
-      '<input type="text" id="shareUrlInput" value="'+esc(shareUrl)+'" readonly>'+ 
-      '<button onclick="copyShareUrl()">复制</button>'+ 
-    '</div>'+ 
-    '<div style="margin-top:12px;display:flex;gap:8px">'+ 
-      '<button class="mini-btn" onclick="forceSync()">立即同步</button>'+ 
-      '<button class="mini-btn" onclick="exportData()">导出备份</button>'+ 
-      '<button class="mini-btn" onclick="document.getElementById(\'importFile\').click()">导入备份</button>'+ 
-      '<input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">'+ 
-    '</div>';
+    '<div class="sync-status">'+\n      '<span class="sdot '+({connected:'green',connecting:'yellow',disconnected:'red'}[syncStatus])+'"></span>'+\n      '<span class="stext">'+statusText+'</span>'+\n    '</div>'+\n    '<div class="sync-tip">'+\n      '<b>怎么同步？</b><br>'+\n      '1. 两台设备用同一个「房间号」<br>'+\n      '2. 把下面的链接发给TA，打开就自动同步<br>'+\n      '3. 加菜、改菜、加菜单都会实时同步'+\n    '</div>'+\n    '<label>房间号</label>'+\n    '<div class="room-row">'+\n      '<input type="text" id="roomInput" value="'+esc(getRoomId())+'" placeholder="输入房间号">'+\n      '<button onclick="saveRoom()">保存</button>'+\n    '</div>'+\n    '<label>分享链接</label>'+\n    '<div class="room-row">'+\n      '<input type="text" id="shareUrlInput" value="'+esc(shareUrl)+'" readonly>'+\n      '<button onclick="copyShareUrl()">复制</button>'+\n    '</div>'+\n    '<div style="margin-top:12px;display:flex;gap:8px">'+\n      '<button class="mini-btn" onclick="forceSync()">立即同步</button>'+\n      '<button class="mini-btn" onclick="exportData()">导出备份</button>'+\n      '<button class="mini-btn" onclick="document.getElementById(\'importFile\').click()">导入备份</button>'+\n      '<input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">'+\n    '</div>';
   showModal('同步设置',html,[{txt:'关闭',cls:'btn-cancel',fn:closeModal}]);
 }
 function saveRoom(){
@@ -1038,7 +996,7 @@ function init(){
   getRoomId();
   loadData();
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js?v=31').catch(function(e){console.log('SW err',e)});
+    navigator.serviceWorker.register('./sw.js?v=32').catch(function(e){console.log('SW err',e)});
   }
   renderAll();
   waitForMqtt(connectMqtt);

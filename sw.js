@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pupumenu-v31';
+const CACHE_NAME = 'pupumenu-v32';
 const ASSETS = ['./manifest.json', './icon-192.png', './icon-512.png', './cat.png', './paw.png'];
 const MQTT_CDN_HOSTS = ['cdnjs.cloudflare.com', 'cdn.bootcdn.net', 'unpkg.com'];
 const FONT_CDN_HOSTS = ['fonts.font.im', 'fonts.googleapis.com', 'fonts.gstatic.com'];
