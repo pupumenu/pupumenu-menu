@@ -149,7 +149,7 @@ header{
 .empty p{font-size:13px;margin-bottom:14px}
 .tab-bar{
   position:fixed;bottom:0;left:0;right:0;
-  background:rgba(255,253,247,.92);backdrop-filter:blur(8px);
+  background:rgba(255,253,247,.97);
   border-top:1px solid var(--border);display:flex;z-index:50;
   padding:2px 0 calc(2px + env(safe-area-inset-bottom));
 }
@@ -170,10 +170,11 @@ header{
 .fab img{width:100%;height:100%;object-fit:contain;pointer-events:none}
 .modal-bg{
   position:fixed;inset:0;background:rgba(92,61,40,.5);z-index:100;
-  display:none;visibility:hidden;align-items:flex-end;justify-content:center;
-  pointer-events:none;
+  display:flex;align-items:flex-end;justify-content:center;
+  visibility:hidden;opacity:0;pointer-events:none;
+  transition:opacity .2s ease;
 }
-.modal-bg.show{display:flex;visibility:visible;pointer-events:auto}
+.modal-bg.show{visibility:visible;opacity:1;pointer-events:auto}
 .modal{
   background:var(--card);width:100%;max-width:500px;border-radius:18px 18px 0 0;
   padding:18px 18px 72px;max-height:90vh;overflow-y:auto;
@@ -198,11 +199,17 @@ header{
 .modal textarea{resize:vertical;min-height:50px}
 .catmgr-list{display:flex;flex-direction:column;gap:8px;max-height:50vh;overflow-y:auto;margin-top:8px}
 .catmgr-row{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#FAF5EC;border-radius:10px}
+.catmgr-order{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.catmgr-order button{width:24px;height:18px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--tl);font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1}
+.catmgr-order button:disabled{opacity:.3;cursor:default}
+.catmgr-order button:not(:disabled):active{background:var(--primary);color:#fff}
 .catmgr-input{flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;background:#fff;font-size:13px;font-family:inherit;color:var(--text);outline:none}
 .catmgr-cnt{font-size:11px;color:var(--tl);flex-shrink:0}
-.catmgr-del{width:26px;height:26px;border-radius:50%;border:none;background:#F0E6D2;color:var(--tl);cursor:pointer;font-size:13px}
+.catmgr-del{width:26px;height:26px;border-radius:50%;border:none;background:#F0E6D2;color:var(--tl);cursor:pointer;font-size:13px;flex-shrink:0}
 .catmgr-del:hover{background:var(--danger);color:#fff}
 .catmgr-add{margin-top:4px;padding:8px;border:1.5px dashed var(--border);border-radius:10px;background:transparent;color:var(--tl);cursor:pointer;font-size:13px;font-family:inherit}
+.dcard.dragging{opacity:.7;transform:scale(1.03);z-index:1000;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:none}
+.dcard.drag-placeholder{opacity:.3}
 .photo-preview{
   margin-top:6px;width:100%;aspect-ratio:16/9;border-radius:10px;border:1.5px dashed var(--border);
   display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;
@@ -217,10 +224,11 @@ header{
 .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--tl)}
 .random-modal{
   position:fixed;inset:0;background:rgba(92,61,40,.6);z-index:200;
-  display:none;visibility:hidden;align-items:center;justify-content:center;padding:20px;
-  pointer-events:none;
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  visibility:hidden;opacity:0;pointer-events:none;
+  transition:opacity .2s ease;
 }
-.random-modal.show{display:flex;visibility:visible;pointer-events:auto}
+.random-modal.show{visibility:visible;opacity:1;pointer-events:auto}
 .random-card{
   background:var(--card);border-radius:18px;padding:22px;max-width:320px;width:100%;
   text-align:center;animation:pop .3s ease;
@@ -322,7 +330,7 @@ var currentRandomId=null;
 var mqttClient=null, syncStatus='disconnected', roomId='', senderId='';
 var syncTimeout=null, isPushing=false, lastIncomingTs=0;
 // ===== Constants =====
-var APP_VERSION=30;
+var APP_VERSION=31;
 var MQTT_URL='wss://broker.emqx.io:8084/mqtt';
 var STORAGE_KEY='pupumenu_v24';
 
@@ -331,16 +339,9 @@ function $(id){return document.getElementById(id)}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function showOverlay(el){
   el.classList.add('show');
-  el.style.display='flex';
-  el.style.visibility='visible';
-  el.style.pointerEvents='auto';
 }
 function hideOverlay(el){
   el.classList.remove('show');
-  el.style.display='none';
-  el.style.visibility='hidden';
-  el.style.pointerEvents='none';
-  void el.offsetHeight;
 }
 function toast(msg){
   var t=$('toast');if(!t)return;
@@ -360,6 +361,7 @@ function genRoomId(){
   return adj[Math.floor(Math.random()*adj.length)]+n;
 }
 function getRoomId(){
+  // URL param takes priority (for sharing via link)
   var urlParams=new URLSearchParams(window.location.search);
   var urlRoom=urlParams.get('room');
   if(urlRoom){roomId=urlRoom;localStorage.setItem('room_id',roomId);return roomId}
@@ -373,18 +375,22 @@ function getTopic(){return 'pupumenu/menu/'+getRoomId()+'/state'}
 
 // ===== Storage =====
 function loadData(){
+  var defaultCats=['主菜','配菜','汤品','主食','凉菜','甜品'];
   try{
     var raw=localStorage.getItem(STORAGE_KEY);
     if(raw){
       var d=JSON.parse(raw);
       dishes=d.dishes||[];
-      categories=d.categories||['主菜','配菜','汤品','主食','凉菜','甜品'];
+      categories=(Array.isArray(d.categories)&&d.categories.length>0)?d.categories:defaultCats;
       deletedIds=d.deletedIds||[];
       return;
     }
   }catch(e){}
   try{dishes=JSON.parse(localStorage.getItem('dishes_v2')||'[]')}catch(e){dishes=[]}
-  try{categories=JSON.parse(localStorage.getItem('cats_v2')||'["主菜","配菜","汤品","主食","凉菜","甜品"]')}catch(e){categories=['主菜','配菜','汤品','主食','凉菜','甜品']}
+  try{
+    var oldCats=JSON.parse(localStorage.getItem('cats_v2')||'null');
+    categories=(Array.isArray(oldCats)&&oldCats.length>0)?oldCats:defaultCats;
+  }catch(e){categories=defaultCats}
   try{deletedIds=JSON.parse(localStorage.getItem('dels_v2')||'[]')}catch(e){deletedIds=[]}
 }
 function saveData(){
@@ -393,6 +399,7 @@ function saveData(){
       dishes:dishes,categories:categories,deletedIds:deletedIds
     }));
   }catch(e){
+    // Storage full — strip oldest photos
     console.log('[Storage] Full, stripping old photos');
     var sorted=dishes.slice().sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0)});
     for(var i=0;i<sorted.length&&i<5;i++){if(sorted[i].photo)sorted[i].photo=null}
@@ -423,9 +430,13 @@ function openCatMgr(){
   categories.forEach(function(c,i){
     var cnt=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0&&d.category===c}).length;
     html+='<div class="catmgr-row">'+
+      '<div class="catmgr-order">'+
+        '<button onclick="moveCat('+i+',-1)" '+(i===0?'disabled':'')+'>↑</button>'+
+        '<button onclick="moveCat('+i+',1)" '+(i===categories.length-1?'disabled':'')+'>↓</button>'+
+      '</div>'+
       '<input type="text" value="'+esc(c)+'" data-idx="'+i+'" class="catmgr-input">'+
       '<span class="catmgr-cnt">'+cnt+'道</span>'+
-      '<button class="catmgr-del" onclick="deleteCat('+i+')" title="删除分类">✕</button>'+
+      '<button class="catmgr-del" onclick="deleteCat('+i+')" title="删除分类">×</button>'+
     '</div>';
   });
   html+='<button class="catmgr-add" onclick="addCatRow()">＋ 添加新分类</button>';
@@ -452,6 +463,12 @@ function openCatMgr(){
     }}
   ]);
 }
+function moveCat(i,dir){
+  var j=i+dir;
+  if(j<0||j>=categories.length)return;
+  var tmp=categories[i];categories[i]=categories[j];categories[j]=tmp;
+  openCatMgr();
+}
 function addCatRow(){
   var list=document.querySelector('.catmgr-list');
   if(!list){openCatMgr();return}
@@ -462,9 +479,13 @@ function addCatRow(){
   row.querySelector('input').focus();
 }
 function deleteCat(i){
+  if(!Array.isArray(categories)||typeof i!=='number'||i<0||i>=categories.length){toast('分类不存在');return}
   if(categories.length<=1){toast('至少保留一个分类');return}
   var removed=categories[i];
-  showConfirm('删除分类「'+removed+'」？该分类下的菜会归到第一个分类。',function(){
+  var cnt=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0&&d.category===removed}).length;
+  var msg='删除分类「'+removed+'」？';
+  if(cnt>0)msg+='该分类下的'+cnt+'道菜会归到第一个分类。';
+  showConfirm(msg,function(){
     categories.splice(i,1);
     dishes.forEach(function(d){if(d.category===removed)d.category=categories[0]||''});
     if(currentCat===removed)currentCat='';
@@ -502,16 +523,16 @@ function renderGrid(){
     var ph=d.photo?'<img class="dphoto" src="'+d.photo+'" loading="lazy">':'<div class="dph">🍽️</div>';
     var tags=(d.tags||[]).slice(0,3).map(function(t){return '<span class="dtag">'+esc(t)+'</span>'}).join('');
     var inMenu=d.inMenu;
-    html+='<div class="dcard" onclick="editDish(\''+d.id+'\')">'+
-      '<div class="card-btns">'+
-        '<button class="card-btn'+(inMenu?' menu-in':'')+'" onclick="event.stopPropagation();toggleInMenu(\''+d.id+'\')" title="加入菜单">'+(inMenu?'✓':'＋')+'</button>'+
-      '</div>'+
+    html+='<div class="dcard" data-id="'+d.id+'" onclick="cardClick(event,\''+d.id+'\')" ontouchstart="cardTouchStart(event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd(event)" ontouchcancel="cardTouchEnd(event)">'+ 
+      '<div class="card-btns">'+ 
+        '<button class="card-btn'+(inMenu?' menu-in':'')+'" onclick="event.stopPropagation();toggleInMenu(\''+d.id+'\')" title="加入菜单">'+(inMenu?'✓':'＋')+'</button>'+ 
+      '</div>'+ 
       ph+
-      '<div class="dinfo">'+
-        '<div class="dname">'+esc(d.name)+'</div>'+
-        '<div class="dcat">'+esc(d.category||'未分类')+'</div>'+
-        (tags?'<div class="dtags">'+tags+'</div>':'')+
-      '</div>'+
+      '<div class="dinfo">'+ 
+        '<div class="dname">'+esc(d.name)+'</div>'+ 
+        '<div class="dcat">'+esc(d.category||'未分类')+'</div>'+ 
+        (tags?'<div class="dtags">'+tags+'</div>':'')+ 
+      '</div>'+ 
     '</div>';
   });
   area.innerHTML=html+'</div>';
@@ -556,6 +577,8 @@ function switchView(v){
   $('tabGrid').classList.toggle('active',v==='grid');
   $('tabMenu').classList.toggle('active',v==='menu');
   $('catBar').style.display=v==='menu'?'none':'';
+  var fab=document.querySelector('.fab');
+  if(fab)fab.style.display=v==='menu'?'none':'';
   renderContent();
 }
 
@@ -601,8 +624,7 @@ function editDish(id){
   showOverlay($('modalBg'));
 }
 function closeModal(){
-  if(document.activeElement)document.activeElement.blur();
-  hideOverlay($('modalBg'));
+  setTimeout(function(){hideOverlay($('modalBg'))},0);
 }
 function viewDish(id){
   var d=dishes.find(function(x){return x.id===id});
@@ -654,6 +676,68 @@ function toggleInMenu(id){
   toast(d.inMenu?'已加入菜单':'已移出菜单');
 }
 
+// ===== Card Drag Reorder =====
+var dragState={id:null,el:null,startY:0,startX:0,timer:null,active:false,suppressClick:false};
+function cardClick(e,id){
+  if(dragState.suppressClick){dragState.suppressClick=false;return}
+  editDish(id);
+}
+function cardTouchStart(e){
+  if(currentView!=='grid')return;
+  var card=e.currentTarget;
+  var t=e.touches[0];
+  dragState.id=card.getAttribute('data-id');
+  dragState.el=card;
+  dragState.startX=t.clientX;
+  dragState.startY=t.clientY;
+  dragState.active=false;
+  clearTimeout(dragState.timer);
+  dragState.timer=setTimeout(function(){
+    dragState.active=true;
+    dragState.suppressClick=true;
+    if(navigator.vibrate)navigator.vibrate(30);
+    if(!dragState.el)return;
+    dragState.el.classList.add('dragging');
+  },450);
+}
+function cardTouchMove(e){
+  if(!dragState.id)return;
+  var t=e.touches[0];
+  if(!dragState.active){
+    if(Math.abs(t.clientY-dragState.startY)>8||Math.abs(t.clientX-dragState.startX)>8){
+      clearTimeout(dragState.timer);dragState.id=null;
+    }
+    return;
+  }
+  e.preventDefault();
+  var dy=t.clientY-dragState.startY;
+  dragState.el.style.transform='scale(1.03) translateY('+dy+'px)';
+  var elBelow=document.elementFromPoint(t.clientX,t.clientY);
+  var cardBelow=elBelow?elBelow.closest('.dcard'):null;
+  if(cardBelow&&cardBelow!==dragState.el){
+    var rect=cardBelow.getBoundingClientRect();
+    var middle=rect.top+rect.height/2;
+    var grid=dragState.el.parentNode;
+    if(t.clientY<middle){grid.insertBefore(dragState.el,cardBelow)}
+    else{grid.insertBefore(dragState.el,cardBelow.nextSibling)}
+  }
+}
+function cardTouchEnd(e){
+  clearTimeout(dragState.timer);
+  if(dragState.active&&dragState.el){
+    var cards=document.querySelectorAll('.dgrid .dcard');
+    var order=Date.now();
+    cards.forEach(function(card){
+      var id=card.getAttribute('data-id');
+      var d=dishes.find(function(x){return x.id===id});
+      if(d){d.order=order++;d.updatedAt=Date.now()}
+    });
+    saveData();scheduleSync();
+    renderGrid();
+  }
+  dragState.id=null;dragState.el=null;dragState.active=false;
+}
+
 // ===== Photo =====
 function handlePhoto(input){
   var file=input.files[0];if(!file)return;
@@ -675,9 +759,8 @@ function handlePhoto(input){
 
 // ===== Random =====
 function randomPick(){
-  if(dishes.length===0){toast('还没有菜品');return}
-  var pool=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0});
-  if(pool.length===0){toast('没有可选的菜');return}
+  var pool=getFiltered();
+  if(pool.length===0){toast(currentCat?'当前分类下没有菜':'还没有菜品');return}
   var pick=pool[Math.floor(Math.random()*pool.length)];
   currentRandomId=pick.id;
   var ph=pick.photo?'<img src="'+pick.photo+'">':'<div class="rph">🍽️</div>';
@@ -699,9 +782,10 @@ function confirmRandom(){
   closeRandom();
 }
 function closeRandom(){
-  if(document.activeElement)document.activeElement.blur();
-  hideOverlay($('randomModal'));
-  currentRandomId=null;
+  setTimeout(function(){
+    hideOverlay($('randomModal'));
+    currentRandomId=null;
+  },0);
 }
 
 // ===== Sync Settings =====
@@ -709,31 +793,31 @@ function openSyncSettings(){
   var statusText={connected:'已连接，实时同步中',connecting:'正在连接…',disconnected:'未连接（仅本地保存）'}[syncStatus];
   var shareUrl=window.location.origin+window.location.pathname+'?room='+encodeURIComponent(getRoomId());
   var html=
-    '<div class="sync-status">'+
-      '<span class="sdot '+({connected:'green',connecting:'yellow',disconnected:'red'}[syncStatus])+'"></span>'+
-      '<span class="stext">'+statusText+'</span>'+
-    '</div>'+
-    '<div class="sync-tip">'+
-      '<b>怎么同步？</b><br>'+
-      '1. 两台设备用同一个「房间号」<br>'+
-      '2. 把下面的链接发给TA，打开就自动同步<br>'+
-      '3. 加菜、改菜、加菜单都会实时同步'+
-    '</div>'+
-    '<label>房间号</label>'+
-    '<div class="room-row">'+
-      '<input type="text" id="roomInput" value="'+esc(getRoomId())+'" placeholder="输入房间号">'+
-      '<button onclick="saveRoom()">保存</button>'+
-    '</div>'+
-    '<label>分享链接</label>'+
-    '<div class="room-row">'+
-      '<input type="text" id="shareUrlInput" value="'+esc(shareUrl)+'" readonly>'+
-      '<button onclick="copyShareUrl()">复制</button>'+
-    '</div>'+
-    '<div style="margin-top:12px;display:flex;gap:8px">'+
-      '<button class="mini-btn" onclick="forceSync()">立即同步</button>'+
-      '<button class="mini-btn" onclick="exportData()">导出备份</button>'+
-      '<button class="mini-btn" onclick="document.getElementById(\'importFile\').click()">导入备份</button>'+
-      '<input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">'+
+    '<div class="sync-status">'+ 
+      '<span class="sdot '+({connected:'green',connecting:'yellow',disconnected:'red'}[syncStatus])+'"></span>'+ 
+      '<span class="stext">'+statusText+'</span>'+ 
+    '</div>'+ 
+    '<div class="sync-tip">'+ 
+      '<b>怎么同步？</b><br>'+ 
+      '1. 两台设备用同一个「房间号」<br>'+ 
+      '2. 把下面的链接发给TA，打开就自动同步<br>'+ 
+      '3. 加菜、改菜、加菜单都会实时同步'+ 
+    '</div>'+ 
+    '<label>房间号</label>'+ 
+    '<div class="room-row">'+ 
+      '<input type="text" id="roomInput" value="'+esc(getRoomId())+'" placeholder="输入房间号">'+ 
+      '<button onclick="saveRoom()">保存</button>'+ 
+    '</div>'+ 
+    '<label>分享链接</label>'+ 
+    '<div class="room-row">'+ 
+      '<input type="text" id="shareUrlInput" value="'+esc(shareUrl)+'" readonly>'+ 
+      '<button onclick="copyShareUrl()">复制</button>'+ 
+    '</div>'+ 
+    '<div style="margin-top:12px;display:flex;gap:8px">'+ 
+      '<button class="mini-btn" onclick="forceSync()">立即同步</button>'+ 
+      '<button class="mini-btn" onclick="exportData()">导出备份</button>'+ 
+      '<button class="mini-btn" onclick="document.getElementById(\'importFile\').click()">导入备份</button>'+ 
+      '<input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">'+ 
     '</div>';
   showModal('同步设置',html,[{txt:'关闭',cls:'btn-cancel',fn:closeModal}]);
 }
@@ -840,12 +924,14 @@ function connectMqtt(){
       if(err)console.log('[Sync] Subscribe error',err);
       else console.log('[Sync] Subscribed to',topic);
     });
+    // Push local state so others get it (retained message will be updated)
     scheduleSync();
   });
   mqttClient.on('message',function(topic,message){
     try{
       var data=JSON.parse(message.toString());
       if(!data||data.senderId===getSenderId())return;
+      // Ignore old messages
       if(data.ts&&data.ts<=lastIncomingTs)return;
       lastIncomingTs=data.ts||Date.now();
       console.log('[Sync] Received state, dishes:',(data.dishes||[]).length);
@@ -871,6 +957,7 @@ function connectMqtt(){
 function mergeData(incoming){
   if(!incoming)return false;
   var changed=false;
+  // Merge deletions
   if(incoming.deletedIds){
     incoming.deletedIds.forEach(function(id){
       if(deletedIds.indexOf(id)<0){deletedIds.push(id);changed=true}
@@ -879,6 +966,7 @@ function mergeData(incoming){
   var before=dishes.length;
   dishes=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0});
   if(dishes.length!==before)changed=true;
+  // Merge dishes (LWW by updatedAt)
   var localMap=new Map(dishes.map(function(d){return[d.id,d]}));
   (incoming.dishes||[]).forEach(function(inc){
     if(deletedIds.indexOf(inc.id)>=0)return;
@@ -891,6 +979,7 @@ function mergeData(incoming){
     }
   });
   dishes=Array.from(localMap.values());
+  // Merge categories (union)
   if(incoming.categories){
     incoming.categories.forEach(function(c){
       if(categories.indexOf(c)<0){categories.push(c);changed=true}
@@ -923,6 +1012,7 @@ function syncPush(force){
   };
   var json=JSON.stringify(payload);
   var size=new Blob([json]).size;
+  // If too large, strip photos (keep text sync)
   if(size>900000){
     console.log('[Sync] Payload too large ('+size+'), stripping photos');
     payload.dishes=payload.dishes.map(function(d){return Object.assign({},d,{photo:null})});
@@ -940,6 +1030,7 @@ function init(){
   var savedVer=parseInt(localStorage.getItem('app_ver')||'0');
   if(savedVer<APP_VERSION){
     localStorage.setItem('app_ver',String(APP_VERSION));
+    // Clear old cache
     if('caches' in window){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k)})})}
     if(savedVer>0){location.reload();return}
   }
@@ -947,15 +1038,17 @@ function init(){
   getRoomId();
   loadData();
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js?v=30').catch(function(e){console.log('SW err',e)});
+    navigator.serviceWorker.register('./sw.js?v=31').catch(function(e){console.log('SW err',e)});
   }
   renderAll();
   waitForMqtt(connectMqtt);
+  // Reconnect when page becomes visible again
   document.addEventListener('visibilitychange',function(){
     if(!document.hidden&&mqttClient&&syncStatus!=='connected'){
       try{mqttClient.reconnect()}catch(e){connectMqtt()}
     }
   });
+  // Close modals with Escape
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'){
       if($('randomModal').classList.contains('show'))closeRandom();
