@@ -24,7 +24,7 @@
   }
   tryLoad(0);
 })();
-<\/script>
+</script>
 <style>
 :root{
   --bg:#F4E9D3;--card:#FFFDF7;--primary:#A07757;--pl:#C9A87C;
@@ -330,7 +330,6 @@ function genRoomId(){
   return adj[Math.floor(Math.random()*adj.length)]+n;
 }
 function getRoomId(){
-  // URL param takes priority (for sharing via link)
   var urlParams=new URLSearchParams(window.location.search);
   var urlRoom=urlParams.get('room');
   if(urlRoom){roomId=urlRoom;localStorage.setItem('room_id',roomId);return roomId}
@@ -354,7 +353,6 @@ function loadData(){
       return;
     }
   }catch(e){}
-  // Migrate from old version keys
   try{dishes=JSON.parse(localStorage.getItem('dishes_v2')||'[]')}catch(e){dishes=[]}
   try{categories=JSON.parse(localStorage.getItem('cats_v2')||'["主菜","配菜","汤品","主食","凉菜","甜品"]')}catch(e){categories=['主菜','配菜','汤品','主食','凉菜','甜品']}
   try{deletedIds=JSON.parse(localStorage.getItem('dels_v2')||'[]')}catch(e){deletedIds=[]}
@@ -365,7 +363,6 @@ function saveData(){
       dishes:dishes,categories:categories,deletedIds:deletedIds
     }));
   }catch(e){
-    // Storage full — strip oldest photos
     console.log('[Storage] Full, stripping old photos');
     var sorted=dishes.slice().sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0)});
     for(var i=0;i<sorted.length&&i<5;i++){if(sorted[i].photo)sorted[i].photo=null}
@@ -722,7 +719,6 @@ function importData(event){
       var d=JSON.parse(e.target.result);
       if(!d.dishes){toast('备份文件格式不对');return}
       if(!confirm('导入将合并备份中的菜品，确定吗？'))return;
-      // Merge: add dishes that don't exist locally, keep newer versions
       var localMap=new Map(dishes.map(function(x){return[x.id,x]}));
       (d.dishes||[]).forEach(function(inc){
         var loc=localMap.get(inc.id);
@@ -781,14 +777,12 @@ function connectMqtt(){
       if(err)console.log('[Sync] Subscribe error',err);
       else console.log('[Sync] Subscribed to',topic);
     });
-    // Push local state so others get it (retained message will be updated)
     scheduleSync();
   });
   mqttClient.on('message',function(topic,message){
     try{
       var data=JSON.parse(message.toString());
       if(!data||data.senderId===getSenderId())return;
-      // Ignore old messages
       if(data.ts&&data.ts<=lastIncomingTs)return;
       lastIncomingTs=data.ts||Date.now();
       console.log('[Sync] Received state, dishes:',(data.dishes||[]).length);
@@ -814,7 +808,6 @@ function connectMqtt(){
 function mergeData(incoming){
   if(!incoming)return false;
   var changed=false;
-  // Merge deletions
   if(incoming.deletedIds){
     incoming.deletedIds.forEach(function(id){
       if(deletedIds.indexOf(id)<0){deletedIds.push(id);changed=true}
@@ -823,7 +816,6 @@ function mergeData(incoming){
   var before=dishes.length;
   dishes=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0});
   if(dishes.length!==before)changed=true;
-  // Merge dishes (LWW by updatedAt)
   var localMap=new Map(dishes.map(function(d){return[d.id,d]}));
   (incoming.dishes||[]).forEach(function(inc){
     if(deletedIds.indexOf(inc.id)>=0)return;
@@ -836,7 +828,6 @@ function mergeData(incoming){
     }
   });
   dishes=Array.from(localMap.values());
-  // Merge categories (union)
   if(incoming.categories){
     incoming.categories.forEach(function(c){
       if(categories.indexOf(c)<0){categories.push(c);changed=true}
@@ -869,7 +860,6 @@ function syncPush(force){
   };
   var json=JSON.stringify(payload);
   var size=new Blob([json]).size;
-  // If too large, strip photos (keep text sync)
   if(size>900000){
     console.log('[Sync] Payload too large ('+size+'), stripping photos');
     payload.dishes=payload.dishes.map(function(d){return Object.assign({},d,{photo:null})});
@@ -887,7 +877,6 @@ function init(){
   var savedVer=parseInt(localStorage.getItem('app_ver')||'0');
   if(savedVer<APP_VERSION){
     localStorage.setItem('app_ver',String(APP_VERSION));
-    // Clear old cache
     if('caches' in window){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k)})})}
     if(savedVer>0){location.reload();return}
   }
@@ -899,7 +888,6 @@ function init(){
   }
   renderAll();
   waitForMqtt(connectMqtt);
-  // Reconnect when page becomes visible again
   document.addEventListener('visibilitychange',function(){
     if(!document.hidden&&mqttClient&&syncStatus!=='connected'){
       try{mqttClient.reconnect()}catch(e){connectMqtt()}
@@ -916,6 +904,6 @@ function waitForMqtt(cb){
   },100);
 }
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init)}else{init()}
-<\/script>
+</script>
 </body>
 </html>
