@@ -9,6 +9,8 @@
 <title>噗噗专属菜单</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.font.im">
+<link href="https://fonts.font.im/css2?family=Ma+Shan+Zheng&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
 <script>
 (function(){
   var urls=[
@@ -49,8 +51,8 @@ header{
 }
 .logo{display:flex;align-items:center;gap:10px}
 .logo img{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0}
-.logo .logo-title{font-size:20px;font-weight:700;color:var(--primary);line-height:1.1}
-.logo .logo-sub{font-size:11px;font-weight:400;color:var(--tl2);letter-spacing:1px;margin-top:2px}
+.logo .logo-title{font-family:'ZCOOL XiaoWei','Noto Serif SC',serif;font-size:22px;font-weight:400;color:var(--primary);line-height:1.2;letter-spacing:1px}
+.logo .logo-sub{font-size:11px;font-weight:400;color:var(--tl2);letter-spacing:1px;margin-top:2px;text-align:left}
 .logo .logo-sub::before,.logo .logo-sub::after{content:'\1F33F';margin:0 5px;opacity:.7;font-size:10px}
 .header-right{display:flex;align-items:center;gap:8px}
 .sync-btn{
@@ -128,15 +130,15 @@ header{
 .mv h2{font-size:22px;color:var(--primary);text-align:center;margin-bottom:4px;font-weight:700}
 .mv-sub{text-align:center;font-size:12px;color:var(--tl2);margin-bottom:14px;letter-spacing:1px}
 .mv-sub::before,.mv-sub::after{content:'\1F33F';margin:0 6px;opacity:.7;font-size:11px}
-.menu-title{text-align:center;font-size:24px;font-weight:700;color:var(--primary);margin:10px 0 12px;letter-spacing:3px}
+.menu-title{text-align:center;font-family:'Ma Shan Zheng','ZCOOL XiaoWei',cursive;font-size:28px;font-weight:400;color:var(--primary);margin:4px 0 14px;letter-spacing:4px}
 .menu-toolbar{display:flex;justify-content:center;align-items:center;gap:10px;max-width:680px;margin:0 auto 10px;padding:0 16px}
 .menu-clear-btn{background:rgba(180,90,60,.1);color:#a85a3c;border:1.5px solid rgba(180,90,60,.3);padding:6px 14px;border-radius:18px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
 .menu-clear-btn:hover{background:rgba(180,90,60,.2)}
 .msec{margin-bottom:14px}
-.mst{font-size:13px;font-weight:600;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px}
-.mi{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #F5EDDE;cursor:pointer}
+.mst{font-family:'ZCOOL XiaoWei',serif;font-size:15px;font-weight:400;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px;letter-spacing:1px}
+.mi{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid #F5EDDE;cursor:pointer}
 .mi:last-child{border-bottom:none}
-.min{font-size:14px;font-weight:500}
+.min{font-size:16px;font-weight:500}
 .mid{font-size:11px;color:var(--tl);margin-top:2px}
 .mit{margin-top:3px;display:flex;gap:3px;flex-wrap:wrap}
 .mit span{font-size:9px;padding:1px 5px;border-radius:8px;background:#F0E6D2;color:var(--tl)}
@@ -306,7 +308,7 @@ var currentRandomId=null;
 var mqttClient=null, syncStatus='disconnected', roomId='', senderId='';
 var syncTimeout=null, isPushing=false, lastIncomingTs=0;
 // ===== Constants =====
-var APP_VERSION=26;
+var APP_VERSION=27;
 var MQTT_URL='wss://broker.emqx.io:8084/mqtt';
 var STORAGE_KEY='pupumenu_v24';
 
@@ -496,10 +498,23 @@ function renderMenu(){
     return;
   }
   var toolbar='<div class="menu-toolbar"><button class="menu-clear-btn" onclick="clearMenu()">🧹 清空菜单</button></div>';
-  var html=toolbar+'<div class="menu-title">与你共食烟火</div><div class="mv">';
+  var html=toolbar+'<div class="mv"><div class="menu-title">与你共食烟火</div>';
+  var g={};
   f.forEach(function(d){
-    var tags=(d.tags||[]).map(function(t){return '<span>'+esc(t)+'</span>'}).join('');
-    html+='<div class="mi" onclick="editDish(\''+d.id+'\')"><div><div class="min">'+esc(d.name)+'</div>'+(tags?'<div class="mit">'+tags+'</div>':'')+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
+    var c=d.category||'其他';
+    if(!g[c])g[c]=[];
+    g[c].push(d);
+  });
+  var order=categories.slice();
+  Object.keys(g).forEach(function(c){if(order.indexOf(c)<0)order.push(c)});
+  order.forEach(function(cat){
+    if(!g[cat])return;
+    html+='<div class="msec"><div class="mst">'+esc(cat)+'</div>';
+    g[cat].forEach(function(d){
+      var tags=(d.tags||[]).map(function(t){return '<span>'+esc(t)+'</span>'}).join('');
+      html+='<div class="mi" onclick="editDish(\''+d.id+'\')"><div><div class="min">'+esc(d.name)+'</div>'+(tags?'<div class="mit">'+tags+'</div>':'')+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
+    });
+    html+='</div>';
   });
   area.innerHTML=html+'</div>';
 }
@@ -889,7 +904,7 @@ function init(){
   getRoomId();
   loadData();
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js?v=26').catch(function(e){console.log('SW err',e)});
+    navigator.serviceWorker.register('./sw.js?v=27').catch(function(e){console.log('SW err',e)});
   }
   renderAll();
   waitForMqtt(connectMqtt);

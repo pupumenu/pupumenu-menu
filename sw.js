@@ -1,6 +1,7 @@
-const CACHE_NAME = 'pupumenu-v26';
+const CACHE_NAME = 'pupumenu-v27';
 const ASSETS = ['./manifest.json', './icon-192.png', './icon-512.png', './cat.png', './paw.png'];
 const MQTT_CDN_HOSTS = ['cdnjs.cloudflare.com', 'cdn.bootcdn.net', 'unpkg.com'];
+const FONT_CDN_HOSTS = ['fonts.font.im', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
 self.addEventListener('install', function(e) {
   self.skipWaiting();
@@ -28,6 +29,17 @@ self.addEventListener('fetch', function(e) {
   if (url.protocol === 'wss:' || url.protocol === 'ws:') return;
   // MQTT library from any CDN: network-first, fallback to cache
   if (MQTT_CDN_HOSTS.indexOf(url.hostname) !== -1 && url.pathname.indexOf('mqtt') !== -1) {
+    e.respondWith(
+      fetch(e.request).then(function(resp) {
+        var clone = resp.clone();
+        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
+        return resp;
+      }).catch(function() { return caches.match(e.request); })
+    );
+    return;
+  }
+  // Font CDN: network-first, fallback to cache
+  if (FONT_CDN_HOSTS.indexOf(url.hostname) !== -1) {
     e.respondWith(
       fetch(e.request).then(function(resp) {
         var clone = resp.clone();
