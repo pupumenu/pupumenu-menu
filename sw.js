@@ -1,9 +1,13 @@
-const CACHE_NAME = 'dish-menu-v20';
-const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './cat.png', './cat-v3.png', './paw.png', './favicon.png'];
+const CACHE_NAME = 'dish-menu-v21';
+const ASSETS = ['./manifest.json', './icon-192.png', './icon-512.png', './cat.png', './paw.png'];
 
 self.addEventListener('install', function(e) {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE_NAME).then(function(cache) { return cache.addAll(ASSETS); }));
+  e.waitUntil(caches.keys().then(function(keys) {
+    return Promise.all(keys.map(function(k) { return caches.delete(k); }));
+  }).then(function() {
+    return caches.open(CACHE_NAME).then(function(cache) { return cache.addAll(ASSETS); });
+  }));
 });
 
 self.addEventListener('activate', function(e) {
@@ -15,18 +19,22 @@ self.addEventListener('activate', function(e) {
 self.addEventListener('fetch', function(e) {
   var url = new URL(e.request.url);
   if (url.hostname === 'ntfy.sh') return;
-  if (url.origin === self.location.origin) {
-    var cleanUrl = url.pathname;
-    var cacheKey = url.origin + cleanUrl;
-    if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('.png')) {
-      e.respondWith(
-        fetch(e.request).then(function(resp) {
-          var clone = resp.clone();
-          var keyWithoutQuery = new Request(cacheKey, { method: 'GET' });
-          caches.open(CACHE_NAME).then(function(cache) { cache.put(keyWithoutQuery, clone); });
-          return resp;
-        }).catch(function() { return caches.match(cacheKey); })
-      );
-    }
+  if (url.origin !== self.location.origin) return;
+
+  // HTML/导航：永远走网络，不缓存，确保每次拿到最新版
+  if (e.request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+
+  // 静态资源：缓存优先
+  if (url.pathname.endsWith('.png') || url.pathname.endsWith('.json') || url.pathname.endsWith('.js')) {
+    e.respondWith(
+      fetch(e.request).then(function(resp) {
+        var clone = resp.clone();
+        caches.open(CACHE_NAME).then(function(cache) { cache.put(e.request, clone); });
+        return resp;
+      }).catch(function() { return caches.match(e.request); })
+    );
   }
 });

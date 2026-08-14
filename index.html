@@ -24,7 +24,7 @@ body{
 }
 body::before{
   content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
-  background-image:url('paw.png?v=20');background-repeat:repeat;
+  background-image:url('paw.png?v=21');background-repeat:repeat;
   background-size:90px;opacity:.05;
 }
 header{
@@ -200,7 +200,7 @@ header{
 </head>
 <body>
 <header>
-  <div class="logo"><img src="cat.png?v=20" alt="logo"><span>噗噗菜单</span></div>
+  <div class="logo"><img src="cat.png?v=21" alt="logo"><span>噗噗菜单</span></div>
   <button class="btn-add" onclick="openAddModal()">➕ 添加</button>
 </header>
 <div class="search-bar"><input type="text" id="searchInput" placeholder="搜菜名、标签..." oninput="renderContent()"></div>
@@ -210,7 +210,7 @@ header{
   <button class="tab active" id="tabGrid" onclick="switchView('grid')"><span class="tab-icon">🎴</span>卡片</button>
   <button class="tab" id="tabMenu" onclick="switchView('menu')"><span class="tab-icon">📋</span>菜单</button>
 </div>
-<button class="fab" onclick="randomPick()"><img src="paw.png?v=20" alt="随机"></button>
+<button class="fab" onclick="randomPick()"><img src="paw.png?v=21" alt="随机"></button>
 <div class="modal-bg" id="modalBg">
   <div class="modal">
     <h3 id="modalTitle">添加菜品</h3>
@@ -245,7 +245,7 @@ var lastFetchTime=0, pollTimer=null, syncTimeout=null, isFetching=false, backoff
 var currentRandomId=null;
 
 // ===== Constants =====
-var APP_VERSION=20;
+var APP_VERSION=21;
 var SYNC_TOPIC='pupumenu-fresh-0813';
 var POLL_INTERVAL=30000;
 
@@ -372,7 +372,7 @@ function renderContent(){
 function renderGrid(){
   var f=getFiltered(),area=$('content');
   if(f.length===0){
-    area.innerHTML='<div class="empty"><img src="cat.png?v=20" alt=""><h3>'+(dishes.length===0?'还没有菜品':'没找到匹配的菜')+'</h3><p>'+(dishes.length===0?'点右上角添加，把做过的菜拍下来':'换个关键词试试')+'</p>'+(dishes.length===0?'<button class="btn-add" onclick="openAddModal()">➕ 添加第一道菜</button>':'')+'</div>';
+    area.innerHTML='<div class="empty"><img src="cat.png?v=21" alt=""><h3>'+(dishes.length===0?'还没有菜品':'没找到匹配的菜')+'</h3><p>'+(dishes.length===0?'点右上角添加，把做过的菜拍下来':'换个关键词试试')+'</p>'+(dishes.length===0?'<button class="btn-add" onclick="openAddModal()">➕ 添加第一道菜</button>':'')+'</div>';
     return;
   }
   var html='<div class="dgrid">';
@@ -398,7 +398,7 @@ function renderGrid(){
 function renderMenu(){
   var f=getFiltered(),area=$('content');
   if(f.length===0){
-    area.innerHTML='<div class="empty"><img src="cat.png?v=20" alt=""><h3>菜单是空的</h3><p>在卡片界面点 + 号把菜加入菜单</p></div>';
+    area.innerHTML='<div class="empty"><img src="cat.png?v=21" alt=""><h3>菜单是空的</h3><p>在卡片界面点 + 号把菜加入菜单</p></div>';
     return;
   }
   var g={};
@@ -643,7 +643,7 @@ function init(){
     if(savedVer>0){location.reload();return}
   }
   loadData();
-  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js?v=20').catch(function(e){console.log('SW err',e)})}
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js?v=21').catch(function(e){console.log('SW err',e)})}
   renderAll();
   syncPull();
   startPolling();
