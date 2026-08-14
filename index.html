@@ -128,12 +128,13 @@ header{
 .mv h2{font-size:22px;color:var(--primary);text-align:center;margin-bottom:4px;font-weight:700}
 .mv-sub{text-align:center;font-size:12px;color:var(--tl2);margin-bottom:14px;letter-spacing:1px}
 .mv-sub::before,.mv-sub::after{content:'\1F33F';margin:0 6px;opacity:.7;font-size:11px}
+.menu-title{text-align:center;font-size:24px;font-weight:700;color:var(--primary);margin:10px 0 12px;letter-spacing:3px}
 .menu-toolbar{display:flex;justify-content:center;align-items:center;gap:10px;max-width:680px;margin:0 auto 10px;padding:0 16px}
 .menu-clear-btn{background:rgba(180,90,60,.1);color:#a85a3c;border:1.5px solid rgba(180,90,60,.3);padding:6px 14px;border-radius:18px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
 .menu-clear-btn:hover{background:rgba(180,90,60,.2)}
 .msec{margin-bottom:14px}
 .mst{font-size:13px;font-weight:600;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px}
-.mi{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid #F5EDDE}
+.mi{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #F5EDDE;cursor:pointer}
 .mi:last-child{border-bottom:none}
 .min{font-size:14px;font-weight:500}
 .mid{font-size:11px;color:var(--tl);margin-top:2px}
@@ -281,8 +282,8 @@ header{
       <label>分类</label>
       <input type="text" id="dishCat" list="catList" placeholder="选择或输入分类">
       <datalist id="catList"></datalist>
-      <label>描述（可选）</label>
-      <textarea id="dishDesc" placeholder="简短描述"></textarea>
+      <label>做法</label>
+      <textarea id="dishDesc" placeholder="记录做法步骤、食材用量..."></textarea>
       <label>标签（逗号分隔）</label>
       <input type="text" id="dishTags" placeholder="如: 快手, 下饭">
     </div>
@@ -305,7 +306,7 @@ var currentRandomId=null;
 var mqttClient=null, syncStatus='disconnected', roomId='', senderId='';
 var syncTimeout=null, isPushing=false, lastIncomingTs=0;
 // ===== Constants =====
-var APP_VERSION=25;
+var APP_VERSION=26;
 var MQTT_URL='wss://broker.emqx.io:8084/mqtt';
 var STORAGE_KEY='pupumenu_v24';
 
@@ -330,6 +331,7 @@ function genRoomId(){
   return adj[Math.floor(Math.random()*adj.length)]+n;
 }
 function getRoomId(){
+  // URL param takes priority (for sharing via link)
   var urlParams=new URLSearchParams(window.location.search);
   var urlRoom=urlParams.get('room');
   if(urlRoom){roomId=urlRoom;localStorage.setItem('room_id',roomId);return roomId}
@@ -353,6 +355,7 @@ function loadData(){
       return;
     }
   }catch(e){}
+  // Migrate from old version keys
   try{dishes=JSON.parse(localStorage.getItem('dishes_v2')||'[]')}catch(e){dishes=[]}
   try{categories=JSON.parse(localStorage.getItem('cats_v2')||'["主菜","配菜","汤品","主食","凉菜","甜品"]')}catch(e){categories=['主菜','配菜','汤品','主食','凉菜','甜品']}
   try{deletedIds=JSON.parse(localStorage.getItem('dels_v2')||'[]')}catch(e){deletedIds=[]}
@@ -363,6 +366,7 @@ function saveData(){
       dishes:dishes,categories:categories,deletedIds:deletedIds
     }));
   }catch(e){
+    // Storage full — strip oldest photos
     console.log('[Storage] Full, stripping old photos');
     var sorted=dishes.slice().sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0)});
     for(var i=0;i<sorted.length&&i<5;i++){if(sorted[i].photo)sorted[i].photo=null}
@@ -446,7 +450,7 @@ function getFiltered(){
   var list=dishes.filter(function(d){
     if(deletedIds.indexOf(d.id)>=0)return false;
     if(currentView==='menu'&&!d.inMenu)return false;
-    if(currentCat&&d.category!==currentCat)return false;
+    if(currentView!=='menu'&&currentCat&&d.category!==currentCat)return false;
     if(q){
       var n=(d.name||'').toLowerCase(),c=(d.category||'').toLowerCase(),desc=(d.desc||'').toLowerCase();
       var tags=(d.tags||[]).join(' ').toLowerCase();
@@ -479,7 +483,6 @@ function renderGrid(){
       '<div class="dinfo">'+
         '<div class="dname">'+esc(d.name)+'</div>'+
         '<div class="dcat">'+esc(d.category||'未分类')+'</div>'+
-        (d.desc?'<div class="ddesc">'+esc(d.desc)+'</div>':'')+
         (tags?'<div class="dtags">'+tags+'</div>':'')+
       '</div>'+
     '</div>';
@@ -492,17 +495,11 @@ function renderMenu(){
     area.innerHTML='<div class="empty"><img src="cat.png?v=25" alt=""><h3>菜单是空的</h3><p>在卡片界面点 ＋ 号把菜加入菜单</p></div>';
     return;
   }
-  var g={};
-  f.forEach(function(d){var c=d.category||'未分类';if(!g[c])g[c]=[];g[c].push(d)});
-  var toolbar='<div class="menu-toolbar"><button class="menu-clear-btn" onclick="clearMenu()">🧹 清空菜单（准备第二天）</button></div>';
-  var html=toolbar+'<div class="mv">';
-  Object.keys(g).forEach(function(c){
-    html+='<div class="msec"><div class="mst">🐾 '+esc(c)+'</div>';
-    g[c].forEach(function(d){
-      var tags=(d.tags||[]).map(function(t){return '<span>'+esc(t)+'</span>'}).join('');
-      html+='<div class="mi"><div><div class="min">'+esc(d.name)+'</div>'+(d.desc?'<div class="mid">'+esc(d.desc)+'</div>':'')+(tags?'<div class="mit">'+tags+'</div>':'')+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
-    });
-    html+='</div>';
+  var toolbar='<div class="menu-toolbar"><button class="menu-clear-btn" onclick="clearMenu()">🧹 清空菜单</button></div>';
+  var html=toolbar+'<div class="menu-title">与你共食烟火</div><div class="mv">';
+  f.forEach(function(d){
+    var tags=(d.tags||[]).map(function(t){return '<span>'+esc(t)+'</span>'}).join('');
+    html+='<div class="mi" onclick="editDish(\''+d.id+'\')"><div><div class="min">'+esc(d.name)+'</div>'+(tags?'<div class="mit">'+tags+'</div>':'')+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
   });
   area.innerHTML=html+'</div>';
 }
@@ -517,6 +514,7 @@ function switchView(v){
   currentView=v;
   $('tabGrid').classList.toggle('active',v==='grid');
   $('tabMenu').classList.toggle('active',v==='menu');
+  $('catBar').style.display=v==='menu'?'none':'';
   renderContent();
 }
 
@@ -626,7 +624,6 @@ function randomPick(){
     ph+
     '<div class="rname">'+esc(pick.name)+'</div>'+
     '<div class="rcat">'+esc(pick.category||'未分类')+'</div>'+
-    (pick.desc?'<div style="font-size:12px;color:var(--tl);margin-bottom:12px">'+esc(pick.desc)+'</div>':'')+
     '<div class="random-btns">'+
       '<button class="btn btn-cancel" onclick="closeRandom()">关闭</button>'+
       '<button class="btn btn-cancel" onclick="randomPick()">换一个</button>'+
@@ -719,6 +716,7 @@ function importData(event){
       var d=JSON.parse(e.target.result);
       if(!d.dishes){toast('备份文件格式不对');return}
       if(!confirm('导入将合并备份中的菜品，确定吗？'))return;
+      // Merge: add dishes that don't exist locally, keep newer versions
       var localMap=new Map(dishes.map(function(x){return[x.id,x]}));
       (d.dishes||[]).forEach(function(inc){
         var loc=localMap.get(inc.id);
@@ -777,12 +775,14 @@ function connectMqtt(){
       if(err)console.log('[Sync] Subscribe error',err);
       else console.log('[Sync] Subscribed to',topic);
     });
+    // Push local state so others get it (retained message will be updated)
     scheduleSync();
   });
   mqttClient.on('message',function(topic,message){
     try{
       var data=JSON.parse(message.toString());
       if(!data||data.senderId===getSenderId())return;
+      // Ignore old messages
       if(data.ts&&data.ts<=lastIncomingTs)return;
       lastIncomingTs=data.ts||Date.now();
       console.log('[Sync] Received state, dishes:',(data.dishes||[]).length);
@@ -808,6 +808,7 @@ function connectMqtt(){
 function mergeData(incoming){
   if(!incoming)return false;
   var changed=false;
+  // Merge deletions
   if(incoming.deletedIds){
     incoming.deletedIds.forEach(function(id){
       if(deletedIds.indexOf(id)<0){deletedIds.push(id);changed=true}
@@ -816,6 +817,7 @@ function mergeData(incoming){
   var before=dishes.length;
   dishes=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0});
   if(dishes.length!==before)changed=true;
+  // Merge dishes (LWW by updatedAt)
   var localMap=new Map(dishes.map(function(d){return[d.id,d]}));
   (incoming.dishes||[]).forEach(function(inc){
     if(deletedIds.indexOf(inc.id)>=0)return;
@@ -828,6 +830,7 @@ function mergeData(incoming){
     }
   });
   dishes=Array.from(localMap.values());
+  // Merge categories (union)
   if(incoming.categories){
     incoming.categories.forEach(function(c){
       if(categories.indexOf(c)<0){categories.push(c);changed=true}
@@ -860,6 +863,7 @@ function syncPush(force){
   };
   var json=JSON.stringify(payload);
   var size=new Blob([json]).size;
+  // If too large, strip photos (keep text sync)
   if(size>900000){
     console.log('[Sync] Payload too large ('+size+'), stripping photos');
     payload.dishes=payload.dishes.map(function(d){return Object.assign({},d,{photo:null})});
@@ -877,6 +881,7 @@ function init(){
   var savedVer=parseInt(localStorage.getItem('app_ver')||'0');
   if(savedVer<APP_VERSION){
     localStorage.setItem('app_ver',String(APP_VERSION));
+    // Clear old cache
     if('caches' in window){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k)})})}
     if(savedVer>0){location.reload();return}
   }
@@ -884,10 +889,11 @@ function init(){
   getRoomId();
   loadData();
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js?v=25').catch(function(e){console.log('SW err',e)});
+    navigator.serviceWorker.register('./sw.js?v=26').catch(function(e){console.log('SW err',e)});
   }
   renderAll();
   waitForMqtt(connectMqtt);
+  // Reconnect when page becomes visible again
   document.addEventListener('visibilitychange',function(){
     if(!document.hidden&&mqttClient&&syncStatus!=='connected'){
       try{mqttClient.reconnect()}catch(e){connectMqtt()}
