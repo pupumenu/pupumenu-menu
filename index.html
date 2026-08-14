@@ -171,11 +171,12 @@ header{
 .modal-bg{
   position:fixed;inset:0;background:rgba(92,61,40,.5);z-index:100;
   display:none;align-items:flex-end;justify-content:center;
+  pointer-events:none;
 }
-.modal-bg.show{display:flex}
+.modal-bg.show{display:flex;pointer-events:auto}
 .modal{
   background:var(--card);width:100%;max-width:500px;border-radius:18px 18px 0 0;
-  padding:18px;max-height:90vh;overflow-y:auto;
+  padding:18px 18px 72px;max-height:90vh;overflow-y:auto;
 }
 .modal h3{font-size:17px;margin-bottom:10px;color:var(--primary);padding-right:24px}
 .modal h3:empty{display:none}
@@ -217,8 +218,9 @@ header{
 .random-modal{
   position:fixed;inset:0;background:rgba(92,61,40,.6);z-index:200;
   display:none;align-items:center;justify-content:center;padding:20px;
+  pointer-events:none;
 }
-.random-modal.show{display:flex}
+.random-modal.show{display:flex;pointer-events:auto}
 .random-card{
   background:var(--card);border-radius:18px;padding:22px;max-width:320px;width:100%;
   text-align:center;animation:pop .3s ease;
@@ -320,7 +322,7 @@ var currentRandomId=null;
 var mqttClient=null, syncStatus='disconnected', roomId='', senderId='';
 var syncTimeout=null, isPushing=false, lastIncomingTs=0;
 // ===== Constants =====
-var APP_VERSION=28;
+var APP_VERSION=29;
 var MQTT_URL='wss://broker.emqx.io:8084/mqtt';
 var STORAGE_KEY='pupumenu_v24';
 
@@ -345,6 +347,7 @@ function genRoomId(){
   return adj[Math.floor(Math.random()*adj.length)]+n;
 }
 function getRoomId(){
+  // URL param takes priority (for sharing via link)
   var urlParams=new URLSearchParams(window.location.search);
   var urlRoom=urlParams.get('room');
   if(urlRoom){roomId=urlRoom;localStorage.setItem('room_id',roomId);return roomId}
@@ -368,6 +371,7 @@ function loadData(){
       return;
     }
   }catch(e){}
+  // Migrate from old version keys
   try{dishes=JSON.parse(localStorage.getItem('dishes_v2')||'[]')}catch(e){dishes=[]}
   try{categories=JSON.parse(localStorage.getItem('cats_v2')||'["主菜","配菜","汤品","主食","凉菜","甜品"]')}catch(e){categories=['主菜','配菜','汤品','主食','凉菜','甜品']}
   try{deletedIds=JSON.parse(localStorage.getItem('dels_v2')||'[]')}catch(e){deletedIds=[]}
@@ -378,6 +382,7 @@ function saveData(){
       dishes:dishes,categories:categories,deletedIds:deletedIds
     }));
   }catch(e){
+    // Storage full — strip oldest photos
     console.log('[Storage] Full, stripping old photos');
     var sorted=dishes.slice().sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0)});
     for(var i=0;i<sorted.length&&i<5;i++){if(sorted[i].photo)sorted[i].photo=null}
@@ -400,7 +405,7 @@ function renderCats(){
   });
   html+='<button class="cat-edit" onclick="openCatMgr()" title="管理分类">＋</button>';
   $('catBar').innerHTML=html;
-  var dl=$('catList');dl.innerHTML='';
+  var dl=$('catList');dl.innerHTML='' ;
   categories.forEach(function(c){dl.innerHTML+='<option value="'+esc(c)+'">'});
 }
 function openCatMgr(){
@@ -432,7 +437,7 @@ function openCatMgr(){
         if(d.category&&oldToNew[d.category])d.category=oldToNew[d.category];
         else if(d.category&&newNames.indexOf(d.category)<0)d.category=newNames[0]||'';
       });
-      if(currentCat&&newNames.indexOf(currentCat)<0)currentCat='';
+      if(currentCat&&newNames.indexOf(currentCat)<0)currentCat='' ;
       saveData();renderAll();scheduleSync();closeModal();toast('已保存');
     }}
   ]);
@@ -452,7 +457,7 @@ function deleteCat(i){
   showConfirm('删除分类「'+removed+'」？该分类下的菜会归到第一个分类。',function(){
     categories.splice(i,1);
     dishes.forEach(function(d){if(d.category===removed)d.category=categories[0]||''});
-    if(currentCat===removed)currentCat='';
+    if(currentCat===removed)currentCat='' ;
     saveData();renderAll();scheduleSync();closeModal();
   });
 }
@@ -551,7 +556,7 @@ function showModal(title,bodyHtml,btns){
   $('customBody').innerHTML=bodyHtml||'';
   $('delBtn').style.display='none';
   var btnsEl=$('modalBtns');
-  btnsEl.innerHTML='';
+  btnsEl.innerHTML='' ;
   (btns||[{txt:'关闭',cls:'btn-cancel',fn:closeModal}]).forEach(function(b){
     var btn=document.createElement('button');
     btn.className='btn '+b.cls;btn.textContent=b.txt;btn.onclick=b.fn;
@@ -560,11 +565,11 @@ function showModal(title,bodyHtml,btns){
   $('modalBg').classList.add('show');
 }
 function openAddModal(){
-  editingId=null;currentPhoto='';
+  editingId=null;currentPhoto='' ;
   $('modalTitle').textContent='添加菜品';
-  $('dishFormBody').style.display='';
-  $('customBody').innerHTML='';
-  $('dishName').value='';$('dishCat').value='';$('dishDesc').value='';$('dishTags').value='';
+  $('dishFormBody').style.display='' ;
+  $('customBody').innerHTML='' ;
+  $('dishName').value='';$('dishCat').value='';$('dishDesc').value='';$('dishTags').value='' ;
   $('photoPreview').innerHTML='📷 点击上传照片';
   $('delBtn').style.display='none';
   $('modalBtns').innerHTML='<button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDish()">保存</button>';
@@ -575,8 +580,8 @@ function editDish(id){
   if(!d)return;
   editingId=id;currentPhoto=d.photo||'';
   $('modalTitle').textContent='编辑菜品';
-  $('dishFormBody').style.display='';
-  $('customBody').innerHTML='';
+  $('dishFormBody').style.display='' ;
+  $('customBody').innerHTML='' ;
   $('dishName').value=d.name||'';
   $('dishCat').value=d.category||'';
   $('dishDesc').value=d.desc||'';
@@ -585,7 +590,10 @@ function editDish(id){
   $('modalBtns').innerHTML='<button class="btn btn-danger" onclick="deleteDishFromModal()">删除</button><button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDish()">保存</button>';
   $('modalBg').classList.add('show');
 }
-function closeModal(){var m=$('modalBg');m.classList.remove('show');m.style.display='none';setTimeout(function(){m.style.display=''},0)}
+function closeModal(){
+  if(document.activeElement)document.activeElement.blur();
+  $('modalBg').classList.remove('show');
+}
 function viewDish(id){
   var d=dishes.find(function(x){return x.id===id});
   if(!d)return;
@@ -680,7 +688,11 @@ function confirmRandom(){
   if(d){d.inMenu=true;d.updatedAt=Date.now();saveData();renderContent();scheduleSync();toast('已加入菜单 ✓')}
   closeRandom();
 }
-function closeRandom(){var m=$('randomModal');m.classList.remove('show');m.style.display='none';setTimeout(function(){m.style.display=''},0);currentRandomId=null}
+function closeRandom(){
+  if(document.activeElement)document.activeElement.blur();
+  $('randomModal').classList.remove('show');
+  currentRandomId=null;
+}
 
 // ===== Sync Settings =====
 function openSyncSettings(){
@@ -775,7 +787,7 @@ function importData(event){
     }catch(err){toast('导入失败：文件解析错误')}
   };
   reader.readAsText(file);
-  event.target.value='';
+  event.target.value='' ;
 }
 
 // ===== MQTT Sync =====
@@ -818,12 +830,14 @@ function connectMqtt(){
       if(err)console.log('[Sync] Subscribe error',err);
       else console.log('[Sync] Subscribed to',topic);
     });
+    // Push local state so others get it (retained message will be updated)
     scheduleSync();
   });
   mqttClient.on('message',function(topic,message){
     try{
       var data=JSON.parse(message.toString());
       if(!data||data.senderId===getSenderId())return;
+      // Ignore old messages
       if(data.ts&&data.ts<=lastIncomingTs)return;
       lastIncomingTs=data.ts||Date.now();
       console.log('[Sync] Received state, dishes:',(data.dishes||[]).length);
@@ -849,6 +863,7 @@ function connectMqtt(){
 function mergeData(incoming){
   if(!incoming)return false;
   var changed=false;
+  // Merge deletions
   if(incoming.deletedIds){
     incoming.deletedIds.forEach(function(id){
       if(deletedIds.indexOf(id)<0){deletedIds.push(id);changed=true}
@@ -857,6 +872,7 @@ function mergeData(incoming){
   var before=dishes.length;
   dishes=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0});
   if(dishes.length!==before)changed=true;
+  // Merge dishes (LWW by updatedAt)
   var localMap=new Map(dishes.map(function(d){return[d.id,d]}));
   (incoming.dishes||[]).forEach(function(inc){
     if(deletedIds.indexOf(inc.id)>=0)return;
@@ -869,6 +885,7 @@ function mergeData(incoming){
     }
   });
   dishes=Array.from(localMap.values());
+  // Merge categories (union)
   if(incoming.categories){
     incoming.categories.forEach(function(c){
       if(categories.indexOf(c)<0){categories.push(c);changed=true}
@@ -901,6 +918,7 @@ function syncPush(force){
   };
   var json=JSON.stringify(payload);
   var size=new Blob([json]).size;
+  // If too large, strip photos (keep text sync)
   if(size>900000){
     console.log('[Sync] Payload too large ('+size+'), stripping photos');
     payload.dishes=payload.dishes.map(function(d){return Object.assign({},d,{photo:null})});
@@ -918,6 +936,7 @@ function init(){
   var savedVer=parseInt(localStorage.getItem('app_ver')||'0');
   if(savedVer<APP_VERSION){
     localStorage.setItem('app_ver',String(APP_VERSION));
+    // Clear old cache
     if('caches' in window){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k)})})}
     if(savedVer>0){location.reload();return}
   }
@@ -925,15 +944,17 @@ function init(){
   getRoomId();
   loadData();
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js?v=28').catch(function(e){console.log('SW err',e)});
+    navigator.serviceWorker.register('./sw.js?v=29').catch(function(e){console.log('SW err',e)});
   }
   renderAll();
   waitForMqtt(connectMqtt);
+  // Reconnect when page becomes visible again
   document.addEventListener('visibilitychange',function(){
     if(!document.hidden&&mqttClient&&syncStatus!=='connected'){
       try{mqttClient.reconnect()}catch(e){connectMqtt()}
     }
   });
+  // Close modals with Escape
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'){
       if($('randomModal').classList.contains('show'))closeRandom();
