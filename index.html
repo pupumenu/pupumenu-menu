@@ -135,7 +135,7 @@ header{
 .menu-clear-btn{background:rgba(180,90,60,.1);color:#a85a3c;border:1.5px solid rgba(180,90,60,.3);padding:6px 14px;border-radius:18px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
 .menu-clear-btn:hover{background:rgba(180,90,60,.2)}
 .msec{margin-bottom:14px}
-.mst{font-family:'ZCOOL XiaoWei',serif;font-size:15px;font-weight:400;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px;letter-spacing:1px}
+.mst{font-family:'ZCOOL XiaoWei',serif;font-size:20px;font-weight:400;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px;letter-spacing:1px;text-align:center}font-family:'ZCOOL XiaoWei',serif;font-size:15px;font-weight:400;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px;letter-spacing:1px}
 .mi{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid #F5EDDE;cursor:pointer}
 .mi:last-child{border-bottom:none}
 .min{font-size:16px;font-weight:500}
@@ -541,14 +541,14 @@ function renderMenu(){
     if(!g[cat])return;
     html+='<div class="msec"><div class="mst">'+esc(cat)+'</div>';
     g[cat].forEach(function(d){
-      var descHtml=d.desc?'<div class="mid">'+esc(d.desc.substring(0,40))+(d.desc.length>40?'...':'')+'</div>':'';
+
       var tagsHtml='';
       if(d.tags&&d.tags.length>0){
         tagsHtml='<div class="mit">';
         d.tags.slice(0,3).forEach(function(t){tagsHtml+='<span>'+esc(t)+'</span>'});
         tagsHtml+='</div>';
       }
-      html+='<div class="mi" onclick="viewDish(\''+d.id+'\')"><div><div class="min">'+esc(d.name)+'</div>'+descHtml+tagsHtml+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
+      html+='<div class="mi" onclick="viewDish(\''+d.id+'\')"><div><div class="min">'+esc(d.name)+'</div>'tagsHtml+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
     });
     html+='</div>';
   });
