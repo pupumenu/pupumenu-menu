@@ -548,7 +548,7 @@ function renderMenu(){
         d.tags.slice(0,3).forEach(function(t){tagsHtml+='<span>'+esc(t)+'</span>'});
         tagsHtml+='</div>';
       }
-      html+='<div class="mi" onclick="viewDish(\''+d.id+'\')"><div><div class="min">'+esc(d.name)+'<+/div>'tagsHtml+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
+      html+='<div class="mi" onclick="viewDish(\''+d.id+'\')"><div><div class="min">'+esc(d.name)+'<++/div>'tagsHtml+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
     });
     html+='</div>';
   });
