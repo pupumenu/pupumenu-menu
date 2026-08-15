@@ -126,7 +126,7 @@ header{
 }
 .card-btn:active{transform:scale(.88)}
 .card-btn.menu-in{background:rgba(160,119,87,.82)}
-.mv{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:18px;margin-top:6px}
+.mv{background:var(--card);border:2px solid #8B6914;border-radius:16px;padding:18px;margin-top:6px}
 .mv h2{font-size:22px;color:var(--primary);text-align:center;margin-bottom:4px;font-weight:700}
 .mv-sub{text-align:center;font-size:12px;color:var(--tl2);margin-bottom:14px;letter-spacing:1px}
 .mv-sub::before,.mv-sub::after{content:'\1F33F';margin:0 6px;opacity:.7;font-size:11px}
@@ -135,7 +135,10 @@ header{
 .menu-clear-btn{background:rgba(180,90,60,.1);color:#a85a3c;border:1.5px solid rgba(180,90,60,.3);padding:6px 14px;border-radius:18px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
 .menu-clear-btn:hover{background:rgba(180,90,60,.2)}
 .msec{margin-bottom:14px}
-.mst{font-family:'ZCOOL XiaoWei',serif;font-size:20px;font-weight:400;color:var(--primary);padding-bottom:5px;text-align:center;margin-bottom:6px;letter-spacing:1px}
+.mst{font-family:'ZCOOL XiaoWei',serif;font-size:22px;font-weight:400;color:var(--primary);padding-bottom:5px;text-align:center;margin-bottom:6px;letter-spacing:2px;display:flex;align-items:center;justify-content:center;gap:10px}
+.mst-line{flex:1;max-width:80px;height:1px;background:linear-gradient(90deg,transparent,var(--primary),transparent)}
+.mst-diamond{color:#8B6914;font-size:12px;flex-shrink:0}
+.mst-text{flex-shrink:0}
 .mi{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid #F5EDDE;cursor:pointer}
 .mi:last-child{border-bottom:none}
 .min{font-size:16px;font-weight:500}
@@ -555,7 +558,7 @@ function renderMenu(){
   Object.keys(g).forEach(function(c){if(order.indexOf(c)<0)order.push(c)});
   order.forEach(function(cat){
     if(!g[cat])return;
-    html+='<div class="msec"><div class="mst">'+esc(cat)+'</div>';
+    html+='<div class="msec"><div class="mst"><span class="mst-line"></span><span class="mst-diamond">✦</span><span class="mst-text">'+esc(cat)+'</span><span class="mst-diamond">✦</span><span class="mst-line"></span></div>';
     g[cat].forEach(function(d){
       var tags=(d.tags||[]).map(function(t){return '<span>'+esc(t)+'</span>'}).join('');
       html+='<div class="mi" onclick="viewDish(\''+d.id+'\')"><div><div class="min">'+esc(d.name)+'</div>'+(tags?'<div class="mit">'+tags+'</div>':'')+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
