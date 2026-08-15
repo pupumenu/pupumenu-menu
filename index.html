@@ -135,7 +135,7 @@ header{
 .menu-clear-btn{background:rgba(180,90,60,.1);color:#a85a3c;border:1.5px solid rgba(180,90,60,.3);padding:6px 14px;border-radius:18px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
 .menu-clear-btn:hover{background:rgba(180,90,60,.2)}
 .msec{margin-bottom:14px}
-.mst{font-family:'ZCOOL XiaoWei',serif;font-size:15px;font-weight:400;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px;letter-spacing:1px}
+.mst{font-family:'ZCOOL XiaoWei',serif;font-size:20px;font-weight:400;color:var(--primary);padding-bottom:5px;text-align:center;margin-bottom:6px;letter-spacing:1px}
 .mi{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid #F5EDDE;cursor:pointer}
 .mi:last-child{border-bottom:none}
 .min{font-size:16px;font-weight:500}
@@ -587,7 +587,7 @@ function showModal(title,bodyHtml,btns){
   $('modalTitle').textContent=title;
   $('dishFormBody').style.display='none';
   $('customBody').innerHTML=bodyHtml||'';
-  $('delBtn').style.display='none';
+  if($('delBtn'))$('delBtn').style.display='none';
   var btnsEl=$('modalBtns');
   btnsEl.innerHTML='';
   (btns||[{txt:'关闭',cls:'btn-cancel',fn:closeModal}]).forEach(function(b){
@@ -604,7 +604,7 @@ function openAddModal(){
   $('customBody').innerHTML='';
   $('dishName').value='';$('dishCat').value='';$('dishDesc').value='';$('dishTags').value='';
   $('photoPreview').innerHTML='📷 点击上传照片';
-  $('delBtn').style.display='none';
+  if($('delBtn'))$('delBtn').style.display='none';
   $('modalBtns').innerHTML='<button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDish()">保存</button>';
   showOverlay($('modalBg'));
 }
