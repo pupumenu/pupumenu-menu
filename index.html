@@ -135,7 +135,7 @@ header{
 .menu-clear-btn{background:rgba(180,90,60,.1);color:#a85a3c;border:1.5px solid rgba(180,90,60,.3);padding:6px 14px;border-radius:18px;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
 .menu-clear-btn:hover{background:rgba(180,90,60,.2)}
 .msec{margin-bottom:14px}
-.mst{font-family:'ZCOOL XiaoWei',serif;font-size:20px;font-weight:400;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px;letter-spacing:1px;text-align:center}font-family:'ZCOOL XiaoWei',serif;font-size:15px;font-weight:400;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px;letter-spacing:1px}
+.mst{font-family:'ZCOOL XiaoWei',serif;font-size:15px;font-weight:400;color:var(--primary);padding-bottom:5px;border-bottom:1px dashed var(--border);margin-bottom:6px;letter-spacing:1px}
 .mi{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid #F5EDDE;cursor:pointer}
 .mi:last-child{border-bottom:none}
 .min{font-size:16px;font-weight:500}
@@ -272,7 +272,7 @@ header{
 <body>
 <header>
   <div class="logo">
-    <img src="cat.png?v=3" alt="cat">
+    <img src="cat.png?v=25" alt="logo">
     <div>
       <div class="logo-title">噗噗专属菜单</div>
       <div class="logo-sub">好好吃饭，慢慢相爱</div>
@@ -280,37 +280,26 @@ header{
   </div>
   <div class="header-right">
     <button class="sync-btn" id="syncBtn" onclick="openSyncSettings()" title="同步设置">
-      <span id="syncIcon">&#x1F60A;</span>
-      <span class="dot" id="syncDot"></span>
+      <span id="syncIcon" style="font-size:16px">&#x21BB;</span>
+      <span class="dot yellow" id="syncDot"></span>
     </button>
     <button class="btn-add" onclick="openAddModal()">＋ 添加</button>
   </div>
 </header>
-<div class="search-bar">
-  <input type="text" id="searchInput" placeholder="搜菜名、标签..." oninput="renderContent()">
-</div>
+<div class="search-bar"><input type="text" id="searchInput" placeholder="搜菜名、标签..." oninput="renderContent()"></div>
 <div class="cat-bar" id="catBar"></div>
 <div id="content"></div>
 <div class="tab-bar">
-  <button class="tab active" id="tabGrid" onclick="switchView('grid')">
-    <span class="tab-icon">&#x1F3B4;</span>菜品
-  </button>
-  <button class="tab" id="tabMenu" onclick="switchView('menu')">
-    <span class="tab-icon">&#x1F4CB;</span>菜单
-  </button>
+  <button class="tab active" id="tabGrid" onclick="switchView('grid')"><span class="tab-icon">🎴</span>卡片</button>
+  <button class="tab" id="tabMenu" onclick="switchView('menu')"><span class="tab-icon">📋</span>菜单</button>
 </div>
-<button class="fab" id="randomFab" onclick="randomPick()" title="随机选菜">
-  <img src="paw.png?v=3" alt="random">
-</button>
-
+<button class="fab" onclick="randomPick()"><img src="paw.png?v=25" alt="随机"></button>
 <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
   <div class="modal">
-    <button class="modal-x" onclick="closeModal()">&times;</button>
+    <button class="modal-x" onclick="closeModal()">×</button>
     <h3 id="modalTitle">添加菜品</h3>
     <div id="dishFormBody">
-      <div class="photo-preview" id="photoPreview" onclick="document.getElementById('photoInput').click()">
-        &#x1F4F7; 点击上传照片
-      </div>
+      <div class="photo-preview" id="photoPreview" onclick="document.getElementById('photoInput').click()">📷 点击上传照片</div>
       <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhoto(this)">
       <label>菜名</label>
       <input type="text" id="dishName" placeholder="输入菜名">
@@ -323,50 +312,68 @@ header{
       <input type="text" id="dishTags" placeholder="如: 快手, 下饭">
     </div>
     <div id="customBody"></div>
-    <div class="modal-btns" id="modalBtns"></div>
+    <div class="modal-btns" id="modalBtns">
+      <button class="btn btn-danger" id="delBtn" style="display:none" onclick="deleteDishFromModal()">删除</button>
+      <button class="btn btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="saveDish()">保存</button>
+    </div>
   </div>
 </div>
-
-<div class="random-modal" id="randomModal" onclick="if(event.target===this)closeRandom()">
-  <div class="random-card" id="randomCard"></div>
-</div>
-
+<div class="random-modal" id="randomModal" onclick="if(event.target===this)closeRandom()"><div class="random-card" id="randomCard"></div></div>
 <div class="toast" id="toast"></div>
 <script>
-var APP_VERSION=31;
-var STORAGE_KEY='pupumenu_v24';
-var dishes=[],categories=[],deletedIds=[];
-var currentView='grid',currentCat='',editingId=null,currentPhoto='';
+// ===== State =====
+var dishes=[], categories=['主菜','配菜','汤品','主食','凉菜','甜品'], deletedIds=[];
+var currentView='grid', currentCat='', editingId=null, currentPhoto='';
 var currentRandomId=null;
-var mqttClient=null,mqttConnected=false,mqttConnecting=false;
-var deviceId='',roomId='';
-var syncTimer=null;
-var lastSyncData=null;
-var dragState=null;
+// ===== Sync State =====
+var mqttClient=null, syncStatus='disconnected', roomId='', senderId='';
+var syncTimeout=null, isPushing=false, lastIncomingTs=0;
+// ===== Constants =====
+var APP_VERSION=31;
+var MQTT_URL='wss://broker.emqx.io:8084/mqtt';
+var STORAGE_KEY='pupumenu_v24';
 
+// ===== Utils =====
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function showOverlay(el){
+  el.classList.add('show');
+}
+function hideOverlay(el){
+  el.classList.remove('show');
+}
 function toast(msg){
   var t=$('toast');if(!t)return;
   t.textContent=msg;t.classList.add('show');
   clearTimeout(toast._t);
   toast._t=setTimeout(function(){t.classList.remove('show')},1800);
 }
-function uid(){return 'd'+Date.now()+Math.random().toString(36).substr(2,5)}
-function getDeviceId(){
-  var id=localStorage.getItem('device_id');
-  if(!id){id='dev_'+Math.random().toString(36).substr(2,10);localStorage.setItem('device_id',id)}
-  return id;
+function getSenderId(){
+  if(senderId)return senderId;
+  senderId=localStorage.getItem('device_id');
+  if(!senderId){senderId='d'+Math.random().toString(36).substr(2,9);localStorage.setItem('device_id',senderId)}
+  return senderId;
 }
-function getRoomId(){return localStorage.getItem('room_id')||''}
-function setRoomId(id){
-  if(id){localStorage.setItem('room_id',id);roomId=id}
-  else{localStorage.removeItem('room_id');roomId=''}
+function genRoomId(){
+  var adj=['软软','糯糯','团团','圆圆','暖暖','甜甜','香香','萌萌','咕咕','咩咩'];
+  var n=Math.floor(Math.random()*900)+100;
+  return adj[Math.floor(Math.random()*adj.length)]+n;
 }
-function genRoomName(){
-  var adjs=['软软','糯糯','团团','圆圆','胖胖','瘦瘦','高高','矮矮','白白','黑黑','红红','绿绿','蓝蓝','黄黄','紫紫','粉粉','橙橙','灰灰','金金','银银'];
-  return adjs[Math.floor(Math.random()*adjs.length)]+Math.floor(100+Math.random()*900);
+function getRoomId(){
+  // URL param takes priority (for sharing via link)
+  var urlParams=new URLSearchParams(window.location.search);
+  var urlRoom=urlParams.get('room');
+  if(urlRoom){roomId=urlRoom;localStorage.setItem('room_id',roomId);return roomId}
+  if(!roomId){
+    roomId=localStorage.getItem('room_id');
+    if(!roomId){roomId=genRoomId();localStorage.setItem('room_id',roomId)}
+  }
+  return roomId;
 }
+function getTopic(){return 'pupumenu/menu/'+getRoomId()+'/state'}
+
+// ===== Storage =====
 function loadData(){
   var defaultCats=['主菜','配菜','汤品','主食','凉菜','甜品'];
   try{
@@ -388,18 +395,27 @@ function loadData(){
 }
 function saveData(){
   try{
-    localStorage.setItem(STORAGE_KEY,JSON.stringify({dishes:dishes,categories:categories,deletedIds:deletedIds}));
+    localStorage.setItem(STORAGE_KEY,JSON.stringify({
+      dishes:dishes,categories:categories,deletedIds:deletedIds
+    }));
   }catch(e){
-    var sorted=dishes.slice().sort(function(a,b){return(a.createdAt||0)-(b.createdAt||0)});
+    // Storage full — strip oldest photos
+    console.log('[Storage] Full, stripping old photos');
+    var sorted=dishes.slice().sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0)});
     for(var i=0;i<sorted.length&&i<5;i++){if(sorted[i].photo)sorted[i].photo=null}
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify({dishes:dishes,categories:categories,deletedIds:deletedIds}))}catch(e2){}
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify({
+        dishes:dishes,categories:categories,deletedIds:deletedIds
+      }));
+    }catch(e2){console.log('[Storage] Still full')}
   }
-  scheduleSync();
 }
-function renderAll(){renderCats();renderContent();updateSyncUI()}
+
+// ===== Render =====
+function renderAll(){renderCats();renderContent()}
 function renderCats(){
   var total=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0}).length;
-  var html='<button class="cat-chip'+(currentCat===''?' active':'')+'" onclick="selectCat(\'\')">&#x1F43E; 全部 <span class="cnt">'+total+'</span></button>';
+  var html='<button class="cat-chip'+(currentCat===''?' active':'')+'" onclick="selectCat(\'\')">🐾 全部 <span class="cnt">'+total+'</span></button>';
   categories.forEach(function(c){
     var cnt=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0&&d.category===c}).length;
     html+='<button class="cat-chip'+(currentCat===c?' active':'')+'" onclick="selectCat(\''+esc(c)+'\')">'+esc(c)+' <span class="cnt">'+cnt+'</span></button>';
@@ -407,24 +423,24 @@ function renderCats(){
   html+='<button class="cat-edit" onclick="openCatMgr()" title="管理分类">＋</button>';
   $('catBar').innerHTML=html;
   var dl=$('catList');dl.innerHTML='';
-  categories.forEach(function(c){dl.innerHTML+='<option value="'+esc(c)+'">'})
+  categories.forEach(function(c){dl.innerHTML+='<option value="'+esc(c)+'">'});
 }
-function selectCat(c){currentCat=c;renderCats();renderContent()}
 function openCatMgr(){
   var html='<div class="catmgr-list">';
   categories.forEach(function(c,i){
     var cnt=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0&&d.category===c}).length;
-    html+='<div class="catmgr-row">';
-    html+='<div class="catmgr-order">';
-    html+='<button onclick="moveCat('+i+',-1)" '+(i===0?'disabled':'')+'>&#x25B2;</button>';
-    html+='<button onclick="moveCat('+i+',1)" '+(i===categories.length-1?'disabled':'')+'>&#x25BC;</button>';
-    html+='</div>';
-    html+='<input type="text" value="'+esc(c)+'" data-idx="'+i+'" class="catmgr-input">';
-    html+='<span class="catmgr-cnt">'+cnt+'道</span>';
-    html+='<button class="catmgr-del" onclick="deleteCat('+i+')" title="删除分类">&times;</button>';
-    html+='</div>';
+    html+='<div class="catmgr-row">'+
+      '<div class="catmgr-order">'+
+        '<button onclick="moveCat('+i+',-1)" '+(i===0?'disabled':'')+'>↑</button>'+
+        '<button onclick="moveCat('+i+',1)" '+(i===categories.length-1?'disabled':'')+'>↓</button>'+
+      '</div>'+
+      '<input type="text" value="'+esc(c)+'" data-idx="'+i+'" class="catmgr-input">'+
+      '<span class="catmgr-cnt">'+cnt+'道</span>'+
+      '<button class="catmgr-del" onclick="deleteCat('+i+')" title="删除分类">×</button>'+
+    '</div>';
   });
-  html+='<button class="catmgr-add" onclick="addCatRow()">＋ 添加新分类</button></div>';
+  html+='<button class="catmgr-add" onclick="addCatRow()">＋ 添加新分类</button>';
+  html+='</div>';
   showModal('分类管理',html,[
     {txt:'取消',cls:'btn-cancel',fn:closeModal},
     {txt:'保存',cls:'btn-primary',fn:function(){
@@ -443,32 +459,27 @@ function openCatMgr(){
         else if(d.category&&newNames.indexOf(d.category)<0)d.category=newNames[0]||'';
       });
       if(currentCat&&newNames.indexOf(currentCat)<0)currentCat='';
-      saveData();renderAll();closeModal();toast('已保存');
+      saveData();renderAll();scheduleSync();closeModal();toast('已保存');
     }}
   ]);
+}
+function moveCat(i,dir){
+  var j=i+dir;
+  if(j<0||j>=categories.length)return;
+  var tmp=categories[i];categories[i]=categories[j];categories[j]=tmp;
+  openCatMgr();
 }
 function addCatRow(){
   var list=document.querySelector('.catmgr-list');
   if(!list){openCatMgr();return}
   var row=document.createElement('div');
   row.className='catmgr-row';
-  row.innerHTML='<div class="catmgr-order"><button disabled>&#x25B2;</button><button disabled>&#x25BC;</button></div>'+
-    '<input type="text" value="" placeholder="新分类名" class="catmgr-input">'+
-    '<span class="catmgr-cnt">0道</span>'+
-    '<button class="catmgr-del" onclick="this.parentNode.remove()" title="删除">&times;</button>';
+  row.innerHTML='<input type="text" value="" placeholder="新分类名" class="catmgr-input"><span class="catmgr-cnt">0道</span><button class="catmgr-del" onclick="this.parentNode.remove()" title="删除">✕</button>';
   list.insertBefore(row,list.querySelector('.catmgr-add'));
   row.querySelector('input').focus();
 }
-function moveCat(idx,dir){
-  var newIdx=idx+dir;
-  if(newIdx<0||newIdx>=categories.length)return;
-  var tmp=categories[idx];
-  categories[idx]=categories[newIdx];
-  categories[newIdx]=tmp;
-  saveData();
-  openCatMgr();
-}
 function deleteCat(i){
+  if(!Array.isArray(categories)||typeof i!=='number'||i<0||i>=categories.length){toast('分类不存在');return}
   if(categories.length<=1){toast('至少保留一个分类');return}
   var removed=categories[i];
   var cnt=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0&&d.category===removed}).length;
@@ -478,9 +489,10 @@ function deleteCat(i){
     categories.splice(i,1);
     dishes.forEach(function(d){if(d.category===removed)d.category=categories[0]||''});
     if(currentCat===removed)currentCat='';
-    saveData();renderAll();closeModal();
+    saveData();renderAll();scheduleSync();closeModal();
   });
 }
+function selectCat(c){currentCat=c;renderCats();renderContent()}
 function getFiltered(){
   var q=$('searchInput').value.trim().toLowerCase();
   var list=dishes.filter(function(d){
@@ -494,71 +506,69 @@ function getFiltered(){
     }
     return true;
   });
-  list.sort(function(a,b){return(a.order||a.createdAt||0)-(b.order||b.createdAt||0)});
+  list.sort(function(a,b){return (a.order||a.createdAt||0)-(b.order||b.createdAt||0)});
   return list;
 }
 function renderContent(){
-  if(currentView==='grid')renderGrid();
-  else renderMenu();
+  if(currentView==='grid')renderGrid();else renderMenu();
 }
 function renderGrid(){
   var f=getFiltered(),area=$('content');
   if(f.length===0){
-    area.innerHTML='<div class="empty"><img src="cat.png?v=3"><h3>'+(dishes.length===0?'还没有菜品':'没找到匹配的菜')+'</h3><p>'+(dishes.length===0?'点右上角添加，把做过的菜拍下来':'换个关键词试试')+'</p>'+(dishes.length===0?'<button class="btn-add" onclick="openAddModal()">＋ 添加第一道菜</button>':'')+'</div>';
+    area.innerHTML='<div class="empty"><img src="cat.png?v=25" alt=""><h3>'+(dishes.length===0?'还没有菜品':'没找到匹配的菜')+'</h3><p>'+(dishes.length===0?'点右上角添加，把做过的菜拍下来':'换个关键词试试')+'</p>'+(dishes.length===0?'<button class="btn-add" onclick="openAddModal()">＋ 添加第一道菜</button>':'')+'</div>';
     return;
   }
   var html='<div class="dgrid">';
   f.forEach(function(d){
-    var ph=d.photo?'<img class="dphoto" src="'+d.photo+'" loading="lazy">':'<div class="dph">&#x1F37D;</div>';
+    var ph=d.photo?'<img class="dphoto" src="'+d.photo+'" loading="lazy">':'<div class="dph">🍽️</div>';
+    var tags=(d.tags||[]).slice(0,3).map(function(t){return '<span class="dtag">'+esc(t)+'</span>'}).join('');
     var inMenu=d.inMenu;
-    var tagsHtml='';
-    if(d.tags&&d.tags.length>0){
-      tagsHtml='<div class="dtags">';
-      d.tags.slice(0,3).forEach(function(t){tagsHtml+='<span class="dtag">'+esc(t)+'</span>'});
-      tagsHtml+='</div>';
-    }
-    html+='<div class="dcard" data-id="'+d.id+'" onclick="cardClick(\''+d.id+'\')" ontouchstart="cardTouchStart(event,\''+d.id+'\')" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd(event)">'+
-      '<div class="card-btns">'+
-      '<button class="card-btn'+(inMenu?' menu-in':'')+'" onclick="event.stopPropagation();toggleInMenu(\''+d.id+'\')" title="加入菜单">'+(inMenu?'&#x2713;':'＋')+'</button>'+
-      '</div>'+ph+
-      '<div class="dinfo"><div class="dname">'+esc(d.name)+'</div><div class="dcat">'+esc(d.category||'未分类')+'</div>'+tagsHtml+'</div></div>';
+    html+='<div class="dcard" data-id="'+d.id+'" onclick="cardClick(event,\''+d.id+'\')" ontouchstart="cardTouchStart(event)" ontouchmove="cardTouchMove(event)" ontouchend="cardTouchEnd(event)" ontouchcancel="cardTouchEnd(event)">'+ 
+      '<div class="card-btns">'+ 
+        '<button class="card-btn'+(inMenu?' menu-in':'')+'" onclick="event.stopPropagation();toggleInMenu(\''+d.id+'\')" title="加入菜单">'+(inMenu?'✓':'＋')+'</button>'+ 
+      '</div>'+ 
+      ph+
+      '<div class="dinfo">'+ 
+        '<div class="dname">'+esc(d.name)+'</div>'+ 
+        '<div class="dcat">'+esc(d.category||'未分类')+'</div>'+ 
+        (tags?'<div class="dtags">'+tags+'</div>':'')+ 
+      '</div>'+ 
+    '</div>';
   });
   area.innerHTML=html+'</div>';
 }
 function renderMenu(){
   var f=getFiltered(),area=$('content');
   if(f.length===0){
-    area.innerHTML='<div class="empty"><img src="cat.png?v=3"><h3>菜单是空的</h3><p>在菜品界面点 ＋ 号把菜加入菜单</p></div>';
+    area.innerHTML='<div class="empty"><img src="cat.png?v=25" alt=""><h3>菜单是空的</h3><p>在卡片界面点 ＋ 号把菜加入菜单</p></div>';
     return;
   }
-  var toolbar='<div class="menu-toolbar"><button class="menu-clear-btn" onclick="clearMenu()">&#x1F9F9; 清空菜单</button></div>';
+  var toolbar='<div class="menu-toolbar"><button class="menu-clear-btn" onclick="clearMenu()">🧹 清空菜单</button></div>';
   var html=toolbar+'<div class="mv"><div class="menu-title">与你共食烟火</div>';
   var g={};
-  f.forEach(function(d){var c=d.category||'其他';if(!g[c])g[c]=[];g[c].push(d)});
+  f.forEach(function(d){
+    var c=d.category||'其他';
+    if(!g[c])g[c]=[];
+    g[c].push(d);
+  });
   var order=categories.slice();
   Object.keys(g).forEach(function(c){if(order.indexOf(c)<0)order.push(c)});
   order.forEach(function(cat){
     if(!g[cat])return;
     html+='<div class="msec"><div class="mst">'+esc(cat)+'</div>';
     g[cat].forEach(function(d){
-
-      var tagsHtml='';
-      if(d.tags&&d.tags.length>0){
-        tagsHtml='<div class="mit">';
-        d.tags.slice(0,3).forEach(function(t){tagsHtml+='<span>'+esc(t)+'</span>'});
-        tagsHtml+='</div>';
-      }
-      html+='<div class="mi" onclick="viewDish(\''+d.id+'\')"><div><div class="min">'+esc(d.name)+'<++/div>'tagsHtml+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
+      var tags=(d.tags||[]).map(function(t){return '<span>'+esc(t)+'</span>'}).join('');
+      html+='<div class="mi" onclick="viewDish(\''+d.id+'\')"><div><div class="min">'+esc(d.name)+'</div>'+(tags?'<div class="mit">'+tags+'</div>':'')+'</div>'+(d.photo?'<img class="mi-thumb" src="'+d.photo+'" loading="lazy">':'')+'</div>';
     });
     html+='</div>';
   });
   area.innerHTML=html+'</div>';
 }
 function clearMenu(){
-  showConfirm('确定要清空菜单吗？\n所有菜会从菜单里移除（菜本身不删）。',function(){
+  showConfirm('确定要清空菜单吗？\n所有菜会从菜单里移除（菜本身不删），方便明天重新挑选。',function(){
     var cleared=0;
     dishes.forEach(function(d){if(d.inMenu){d.inMenu=false;d.updatedAt=Date.now();cleared++}});
-    saveData();renderContent();
+    saveData();scheduleSync();renderContent();
     toast(cleared>0?'已清空 '+cleared+' 道菜':'菜单已经是空的');
   });
 }
@@ -567,69 +577,63 @@ function switchView(v){
   $('tabGrid').classList.toggle('active',v==='grid');
   $('tabMenu').classList.toggle('active',v==='menu');
   $('catBar').style.display=v==='menu'?'none':'';
-  var fab=$('randomFab');
+  var fab=document.querySelector('.fab');
   if(fab)fab.style.display=v==='menu'?'none':'';
   renderContent();
 }
-function showModal(title,bodyHtml,btns,showForm){
+
+// ===== CRUD =====
+function showModal(title,bodyHtml,btns){
   $('modalTitle').textContent=title;
-  $('dishFormBody').style.display=showForm?'':'none';
-  $('customBody').innerHTML=showForm?'':(bodyHtml||'');
-  var btnsEl=$('modalBtns');btnsEl.innerHTML='';
+  $('dishFormBody').style.display='none';
+  $('customBody').innerHTML=bodyHtml||'';
+  $('delBtn').style.display='none';
+  var btnsEl=$('modalBtns');
+  btnsEl.innerHTML='';
   (btns||[{txt:'关闭',cls:'btn-cancel',fn:closeModal}]).forEach(function(b){
     var btn=document.createElement('button');
-    btn.className='btn '+b.cls;
-    btn.textContent=b.txt;
-    btn.onclick=b.fn;
+    btn.className='btn '+b.cls;btn.textContent=b.txt;btn.onclick=b.fn;
     btnsEl.appendChild(btn);
   });
-  $('modalBg').classList.add('show');
+  showOverlay($('modalBg'));
 }
 function openAddModal(){
   editingId=null;currentPhoto='';
-  $('dishName').value='';
-  $('dishCat').value=currentCat||'';
-  $('dishDesc').value='';
-  $('dishTags').value='';
-  $('photoPreview').innerHTML='&#x1F4F7; 点击上传照片';
-  showModal('添加菜品','',[
-    {txt:'取消',cls:'btn-cancel',fn:closeModal},
-    {txt:'保存',cls:'btn-primary',fn:saveDish}
-  ],true);
+  $('modalTitle').textContent='添加菜品';
+  $('dishFormBody').style.display='';
+  $('customBody').innerHTML='';
+  $('dishName').value='';$('dishCat').value='';$('dishDesc').value='';$('dishTags').value='';
+  $('photoPreview').innerHTML='📷 点击上传照片';
+  $('delBtn').style.display='none';
+  $('modalBtns').innerHTML='<button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDish()">保存</button>';
+  showOverlay($('modalBg'));
 }
 function editDish(id){
   var d=dishes.find(function(x){return x.id===id});
   if(!d)return;
   editingId=id;currentPhoto=d.photo||'';
+  $('modalTitle').textContent='编辑菜品';
+  $('dishFormBody').style.display='';
+  $('customBody').innerHTML='';
   $('dishName').value=d.name||'';
   $('dishCat').value=d.category||'';
   $('dishDesc').value=d.desc||'';
   $('dishTags').value=(d.tags||[]).join(', ');
-  $('photoPreview').innerHTML=currentPhoto?'<img src="'+currentPhoto+'">':'&#x1F4F7; 点击上传照片';
-  showModal('编辑菜品','',[
-    {txt:'删除',cls:'btn-danger',fn:deleteDishFromModal},
-    {txt:'取消',cls:'btn-cancel',fn:closeModal},
-    {txt:'保存',cls:'btn-primary',fn:saveDish}
-  ],true);
+  $('photoPreview').innerHTML=currentPhoto?'<img src="'+currentPhoto+'">':'📷 点击上传照片';
+  $('modalBtns').innerHTML='<button class="btn btn-danger" onclick="deleteDishFromModal()">删除</button><button class="btn btn-cancel" onclick="closeModal()">取消</button><button class="btn btn-primary" onclick="saveDish()">保存</button>';
+  showOverlay($('modalBg'));
 }
-function closeModal(){$('modalBg').classList.remove('show')}
+function closeModal(){
+  setTimeout(function(){hideOverlay($('modalBg'))},0);
+}
 function viewDish(id){
   var d=dishes.find(function(x){return x.id===id});
   if(!d)return;
-  var photo=d.photo?'<img class="view-dish-photo" src="'+d.photo+'">':'<div class="view-dish-photo-placeholder">&#x1F37D;</div>';
+  var photo=d.photo?'<img class="view-dish-photo" src="'+d.photo+'">':'<div class="view-dish-photo-placeholder">🍽️</div>';
   var desc=d.desc?'<div class="view-dish-desc-label">做法</div><div class="view-dish-desc">'+esc(d.desc)+'</div>':'<div class="view-dish-desc" style="color:var(--tl2);text-align:center">暂无做法记录</div>';
-  var tagsHtml='';
-  if(d.tags&&d.tags.length>0){
-    tagsHtml='<div class="dtags" style="margin-bottom:12px">';
-    d.tags.forEach(function(t){tagsHtml+='<span class="dtag">'+esc(t)+'</span>'});
-    tagsHtml+='</div>';
-  }
-  var html=photo+'<div class="view-dish-name">'+esc(d.name)+'</div><div class="view-dish-cat">'+esc(d.category||'未分类')+'</div>'+tagsHtml+desc;
-  showModal('',html,[
-    {txt:(d.inMenu?'移出菜单':'加入菜单'),cls:'btn-outline',fn:function(){toggleInMenu(id);closeModal()}},
-    {txt:'编辑',cls:'btn-primary',fn:function(){closeModal();editDish(id)}},
-    {txt:'关闭',cls:'btn-cancel',fn:closeModal}
-  ]);
+  var tags=(d.tags&&d.tags.length)?'<div style="margin-top:10px;display:flex;gap:4px;flex-wrap:wrap">'+d.tags.map(function(t){return '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:#F0E6D2;color:var(--tl)">'+esc(t)+'</span>'}).join('')+'</div>':'';
+  var html=photo+'<div class="view-dish-name">'+esc(d.name)+'</div><div class="view-dish-cat">'+esc(d.category||'未分类')+'</div>'+desc+tags;
+  showModal('',html,[{txt:'关闭',cls:'btn-cancel',fn:closeModal}]);
 }
 var _confirmCallback=null;
 function showConfirm(msg,onYes){
@@ -643,23 +647,16 @@ function saveDish(){
   var name=$('dishName').value.trim();
   if(!name){toast('请输入菜名');return}
   var cat=$('dishCat').value.trim()||'未分类';
-  if(categories.indexOf(cat)<0)categories.push(cat);
+  if(categories.indexOf(cat)<0){categories.push(cat)}
   var tags=$('dishTags').value.split(',').map(function(t){return t.trim()}).filter(Boolean);
   var now=Date.now();
   if(editingId){
     var d=dishes.find(function(x){return x.id===editingId});
-    if(d){
-      d.name=name;d.category=cat;d.desc=$('dishDesc').value.trim();
-      d.tags=tags;d.photo=currentPhoto||null;d.updatedAt=now;
-    }
+    if(d){d.name=name;d.category=cat;d.desc=$('dishDesc').value.trim();d.tags=tags;d.photo=currentPhoto||null;d.updatedAt=now}
   }else{
-    dishes.push({
-      id:uid(),name:name,category:cat,desc:$('dishDesc').value.trim(),
-      tags:tags,photo:currentPhoto||null,createdAt:now,updatedAt:now,
-      order:now,inMenu:false
-    });
+    dishes.push({id:'d'+now+Math.random().toString(36).substr(2,5),name:name,category:cat,desc:$('dishDesc').value.trim(),tags:tags,photo:currentPhoto||null,createdAt:now,updatedAt:now,order:now,inMenu:false});
   }
-  saveData();renderAll();closeModal();
+  saveData();renderAll();closeModal();scheduleSync();
 }
 function deleteDishFromModal(){
   if(!editingId)return;
@@ -669,70 +666,88 @@ function deleteDishFromModal(){
 function deleteDish(id){
   deletedIds.push(id);
   dishes=dishes.filter(function(d){return d.id!==id});
-  saveData();renderAll();
-  toast('已删除');
+  saveData();renderAll();scheduleSync();
 }
 function toggleInMenu(id){
   var d=dishes.find(function(x){return x.id===id});
   if(!d)return;
-  d.inMenu=!d.inMenu;
-  d.updatedAt=Date.now();
-  saveData();renderContent();
+  d.inMenu=!d.inMenu;d.updatedAt=Date.now();
+  saveData();renderContent();scheduleSync();
   toast(d.inMenu?'已加入菜单':'已移出菜单');
 }
-function cardClick(id){
-  if(dragState&&dragState.moved){dragState=null;return}
+
+// ===== Card Drag Reorder =====
+var dragState={id:null,el:null,startY:0,startX:0,timer:null,active:false,suppressClick:false};
+function cardClick(e,id){
+  if(dragState.suppressClick){dragState.suppressClick=false;return}
   editDish(id);
 }
-function cardTouchStart(e,id){
-  var touch=e.touches[0];
-  dragState={id:id,startX:touch.clientX,startY:touch.clientY,moved:false,startTime:Date.now(),card:null};
+function cardTouchStart(e){
+  if(currentView!=='grid')return;
+  var card=e.currentTarget;
+  var t=e.touches[0];
+  dragState.id=card.getAttribute('data-id');
+  dragState.el=card;
+  dragState.startX=t.clientX;
+  dragState.startY=t.clientY;
+  dragState.active=false;
+  clearTimeout(dragState.timer);
+  dragState.timer=setTimeout(function(){
+    dragState.active=true;
+    dragState.suppressClick=true;
+    if(navigator.vibrate)navigator.vibrate(30);
+    if(!dragState.el)return;
+    dragState.el.classList.add('dragging');
+  },450);
 }
 function cardTouchMove(e){
-  if(!dragState)return;
-  var touch=e.touches[0];
-  var dx=touch.clientX-dragState.startX,dy=touch.clientY-dragState.startY;
-  if(Math.abs(dx)>10||Math.abs(dy)>10)dragState.moved=true;
-  if(dragState.moved&&Date.now()-dragState.startTime>300){
-    e.preventDefault();
-    if(!dragState.card){
-      dragState.card=document.querySelector('.dcard[data-id="'+dragState.id+'"]');
-      if(dragState.card)dragState.card.classList.add('dragging');
+  if(!dragState.id)return;
+  var t=e.touches[0];
+  if(!dragState.active){
+    if(Math.abs(t.clientY-dragState.startY)>8||Math.abs(t.clientX-dragState.startX)>8){
+      clearTimeout(dragState.timer);dragState.id=null;
     }
+    return;
+  }
+  e.preventDefault();
+  var dy=t.clientY-dragState.startY;
+  dragState.el.style.transform='scale(1.03) translateY('+dy+'px)';
+  var elBelow=document.elementFromPoint(t.clientX,t.clientY);
+  var cardBelow=elBelow?elBelow.closest('.dcard'):null;
+  if(cardBelow&&cardBelow!==dragState.el){
+    var rect=cardBelow.getBoundingClientRect();
+    var middle=rect.top+rect.height/2;
+    var grid=dragState.el.parentNode;
+    if(t.clientY<middle){grid.insertBefore(dragState.el,cardBelow)}
+    else{grid.insertBefore(dragState.el,cardBelow.nextSibling)}
   }
 }
 function cardTouchEnd(e){
-  if(!dragState)return;
-  if(dragState.card){
-    dragState.card.classList.remove('dragging');
-    var touch=e.changedTouches[0];
-    var el=document.elementFromPoint(touch.clientX,touch.clientY);
-    var targetCard=el?el.closest('.dcard'):null;
-    if(targetCard&&targetCard.dataset.id&&targetCard.dataset.id!==dragState.id){
-      var fromIdx=dishes.findIndex(function(d){return d.id===dragState.id});
-      var toIdx=dishes.findIndex(function(d){return d.id===targetCard.dataset.id});
-      if(fromIdx>=0&&toIdx>=0){
-        var item=dishes.splice(fromIdx,1)[0];
-        dishes.splice(toIdx,0,item);
-        dishes.forEach(function(d,i){d.order=i+1});
-        saveData();renderContent();
-      }
-    }
+  clearTimeout(dragState.timer);
+  if(dragState.active&&dragState.el){
+    var cards=document.querySelectorAll('.dgrid .dcard');
+    var order=Date.now();
+    cards.forEach(function(card){
+      var id=card.getAttribute('data-id');
+      var d=dishes.find(function(x){return x.id===id});
+      if(d){d.order=order++;d.updatedAt=Date.now()}
+    });
+    saveData();scheduleSync();
+    renderGrid();
   }
-  setTimeout(function(){dragState=null},50);
+  dragState.id=null;dragState.el=null;dragState.active=false;
 }
+
+// ===== Photo =====
 function handlePhoto(input){
-  var file=input.files[0];
-  if(!file)return;
+  var file=input.files[0];if(!file)return;
   var reader=new FileReader();
   reader.onload=function(e){
     var img=new Image();
     img.onload=function(){
       var maxW=800,maxH=800,w=img.width,h=img.height;
-      if(w>h){if(w>maxW){h=Math.round(h*maxW/w);w=maxW}}
-      else{if(h>maxH){w=Math.round(w*maxH/h);h=maxH}}
-      var c=document.createElement('canvas');
-      c.width=w;c.height=h;
+      if(w>h){if(w>maxW){h=Math.round(h*maxW/w);w=maxW}}else{if(h>maxH){w=Math.round(w*maxH/h);h=maxH}}
+      var c=document.createElement('canvas');c.width=w;c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
       currentPhoto=c.toDataURL('image/jpeg',0.85);
       $('photoPreview').innerHTML='<img src="'+currentPhoto+'">';
@@ -741,222 +756,314 @@ function handlePhoto(input){
   };
   reader.readAsDataURL(file);
 }
+
+// ===== Random =====
 function randomPick(){
   var pool=getFiltered();
   if(pool.length===0){toast(currentCat?'当前分类下没有菜':'还没有菜品');return}
   var pick=pool[Math.floor(Math.random()*pool.length)];
   currentRandomId=pick.id;
-  var ph=pick.photo?'<img src="'+pick.photo+'">':'<div class="rph">&#x1F37D;</div>';
-  $('randomCard').innerHTML=ph+
+  var ph=pick.photo?'<img src="'+pick.photo+'">':'<div class="rph">🍽️</div>';
+  $('randomCard').innerHTML=
+    ph+
     '<div class="rname">'+esc(pick.name)+'</div>'+
     '<div class="rcat">'+esc(pick.category||'未分类')+'</div>'+
     '<div class="random-btns">'+
-    '<button class="btn btn-cancel" onclick="closeRandom()">关闭</button>'+
-    '<button class="btn btn-cancel" onclick="randomPick()">换一个</button>'+
-    '<button class="btn btn-primary" onclick="confirmRandom()">就它了！</button>'+
+      '<button class="btn btn-cancel" onclick="closeRandom()">关闭</button>'+
+      '<button class="btn btn-cancel" onclick="randomPick()">换一个</button>'+
+      '<button class="btn btn-primary" onclick="confirmRandom()">就它了！</button>'+
     '</div>';
-  $('randomModal').classList.add('show');
+  showOverlay($('randomModal'));
 }
 function confirmRandom(){
   if(!currentRandomId)return;
   var d=dishes.find(function(x){return x.id===currentRandomId});
-  if(d){d.inMenu=true;d.updatedAt=Date.now();saveData();renderContent();toast('已加入菜单 &#x2713;')}
+  if(d){d.inMenu=true;d.updatedAt=Date.now();saveData();renderContent();scheduleSync();toast('已加入菜单 ✓')}
   closeRandom();
 }
-function closeRandom(){$('randomModal').classList.remove('show');currentRandomId=null}
+function closeRandom(){
+  setTimeout(function(){
+    hideOverlay($('randomModal'));
+    currentRandomId=null;
+  },0);
+}
+
+// ===== Sync Settings =====
 function openSyncSettings(){
-  var statusHtml='<div class="sync-status">';
-  if(!roomId){
-    statusHtml+='<span class="sdot red"></span><span class="stext">未开启同步</span>';
-  }else if(mqttConnected){
-    statusHtml+='<span class="sdot green"></span><span class="stext">已连接同步</span><span class="sroom">'+esc(roomId)+'</span>';
-  }else if(mqttConnecting){
-    statusHtml+='<span class="sdot yellow"></span><span class="stext">连接中...</span><span class="sroom">'+esc(roomId)+'</span>';
-  }else{
-    statusHtml+='<span class="sdot red"></span><span class="stext">未连接</span><span class="sroom">'+esc(roomId)+'</span>';
-  }
-  statusHtml+='</div>';
-  var tipHtml='<div class="sync-tip">输入相同的<b>房间号</b>即可在多设备间同步菜单数据。<br>创建房间后，其他设备输入同一房间号加入即可。</div>';
-  var roomHtml='<div class="room-row"><input type="text" id="roomInput" value="'+esc(roomId)+'" placeholder="输入房间号加入，或留空创建"><button onclick="saveRoom()">'+(roomId?'更新房间':'创建/加入')+'</button></div>';
-  if(roomId){
-    roomHtml+='<div style="margin-top:8px;display:flex;gap:8px">';
-    roomHtml+='<button class="mini-btn" onclick="copyShareUrl()">&#x1F4CB; 复制分享链接</button>';
-    roomHtml+='<button class="mini-btn" onclick="forceSync()">&#x21BB; 立即同步</button>';
-    roomHtml+='<button class="mini-btn" onclick="setRoomId(\'\');connectMqtt();openSyncSettings()" style="color:var(--danger)">退出房间</button>';
-    roomHtml+='</div>';
-  }
-  var backupHtml='<div style="margin-top:16px;padding-top:12px;border-top:1px dashed var(--border)">';
-  backupHtml+='<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--primary)">数据备份</div>';
-  backupHtml+='<div style="display:flex;gap:8px">';
-  backupHtml+='<button class="mini-btn" onclick="exportData()">&#x1F4E4; 导出备份</button>';
-  backupHtml+='<button class="mini-btn" onclick="document.getElementById(\'importFile\').click()">&#x1F4E5; 导入备份</button>';
-  backupHtml+='<input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">';
-  backupHtml+='</div></div>';
-  showModal('同步设置',statusHtml+tipHtml+roomHtml+backupHtml,[
-    {txt:'关闭',cls:'btn-cancel',fn:closeModal}
-  ]);
+  var statusText={connected:'已连接，实时同步中',connecting:'正在连接…',disconnected:'未连接（仅本地保存）'}[syncStatus];
+  var shareUrl=window.location.origin+window.location.pathname+'?room='+encodeURIComponent(getRoomId());
+  var html=
+    '<div class="sync-status">'+ 
+      '<span class="sdot '+({connected:'green',connecting:'yellow',disconnected:'red'}[syncStatus])+'"></span>'+ 
+      '<span class="stext">'+statusText+'</span>'+ 
+    '</div>'+ 
+    '<div class="sync-tip">'+ 
+      '<b>怎么同步？</b><br>'+ 
+      '1. 两台设备用同一个「房间号」<br>'+ 
+      '2. 把下面的链接发给TA，打开就自动同步<br>'+ 
+      '3. 加菜、改菜、加菜单都会实时同步'+ 
+    '</div>'+ 
+    '<label>房间号</label>'+ 
+    '<div class="room-row">'+ 
+      '<input type="text" id="roomInput" value="'+esc(getRoomId())+'" placeholder="输入房间号">'+ 
+      '<button onclick="saveRoom()">保存</button>'+ 
+    '</div>'+ 
+    '<label>分享链接</label>'+ 
+    '<div class="room-row">'+ 
+      '<input type="text" id="shareUrlInput" value="'+esc(shareUrl)+'" readonly>'+ 
+      '<button onclick="copyShareUrl()">复制</button>'+ 
+    '</div>'+ 
+    '<div style="margin-top:12px;display:flex;gap:8px">'+ 
+      '<button class="mini-btn" onclick="forceSync()">立即同步</button>'+ 
+      '<button class="mini-btn" onclick="exportData()">导出备份</button>'+ 
+      '<button class="mini-btn" onclick="document.getElementById(\'importFile\').click()">导入备份</button>'+ 
+      '<input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">'+ 
+    '</div>';
+  showModal('同步设置',html,[{txt:'关闭',cls:'btn-cancel',fn:closeModal}]);
 }
 function saveRoom(){
-  var input=$('roomInput');
-  if(!input)return;
-  var val=input.value.trim();
-  if(!val)val=genRoomName();
-  setRoomId(val);
-  connectMqtt();
-  toast('房间号: '+val);
+  var newRoom=$('roomInput').value.trim();
+  if(!newRoom){toast('房间号不能为空');return}
+  if(newRoom===roomId){toast('房间号未变');return}
+  roomId=newRoom;
+  localStorage.setItem('room_id',roomId);
+  toast('房间号已保存，重新连接…');
   closeModal();
+  connectMqtt();
 }
 function copyShareUrl(){
-  var url=location.origin+location.pathname+'?room='+encodeURIComponent(roomId);
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(url).then(function(){toast('分享链接已复制')}).catch(function(){prompt('复制以下链接分享:',url)});
-  }else{
-    prompt('复制以下链接分享:',url);
+  var inp=$('shareUrlInput');
+  if(!inp)return;
+  inp.select();
+  try{
+    document.execCommand('copy');
+    toast('链接已复制，发给TA吧');
+  }catch(e){
+    if(navigator.clipboard){navigator.clipboard.writeText(inp.value).then(function(){toast('链接已复制，发给TA吧')})}
+    else toast('请手动复制');
   }
 }
 function forceSync(){
-  if(!mqttConnected){toast('未连接同步');return}
-  syncPush();
-  toast('已推送同步');
+  if(syncStatus!=='connected'){toast('未连接，无法同步');return}
+  syncPush(true);
+  toast('已同步');
 }
 function exportData(){
-  var data=JSON.stringify({dishes:dishes,categories:categories,deletedIds:deletedIds,exportTime:new Date().toISOString()},null,2);
+  var data=JSON.stringify({dishes:dishes,categories:categories,deletedIds:deletedIds,exportedAt:Date.now()},null,2);
   var blob=new Blob([data],{type:'application/json'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
-  a.href=url;a.download='pupumenu_backup_'+new Date().toISOString().slice(0,10)+'.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  toast('备份已导出');
+  a.href=url;a.download='噗噗菜单备份_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();URL.revokeObjectURL(url);
+  toast('已导出备份');
 }
-function importData(input){
-  var file=input.files[0];
-  if(!file)return;
+function importData(event){
+  var file=event.target.files[0];if(!file)return;
   var reader=new FileReader();
   reader.onload=function(e){
     try{
       var d=JSON.parse(e.target.result);
-      if(!d.dishes||!Array.isArray(d.dishes)){toast('无效的备份文件');return}
-      showConfirm('导入将覆盖当前所有数据，确定继续吗？',function(){
-        dishes=d.dishes||[];
-        categories=(Array.isArray(d.categories)&&d.categories.length>0)?d.categories:['主菜','配菜','汤品','主食','凉菜','甜品'];
-        deletedIds=d.deletedIds||[];
-        saveData();renderAll();closeModal();toast('导入成功');
+      if(!d.dishes){toast('备份文件格式不对');return}
+      showConfirm('导入将合并备份中的菜品，确定吗？',function(){
+        var localMap=new Map(dishes.map(function(x){return[x.id,x]}));
+        (d.dishes||[]).forEach(function(inc){
+          var loc=localMap.get(inc.id);
+          if(!loc||(inc.updatedAt||0)>(loc.updatedAt||0))localMap.set(inc.id,inc);
+        });
+        dishes=Array.from(localMap.values());
+        (d.categories||[]).forEach(function(c){if(categories.indexOf(c)<0)categories.push(c)});
+        (d.deletedIds||[]).forEach(function(id){if(deletedIds.indexOf(id)<0)deletedIds.push(id)});
+        dishes=dishes.filter(function(x){return deletedIds.indexOf(x.id)<0});
+        saveData();renderAll();scheduleSync();
+        toast('导入成功，共'+(d.dishes||[]).length+'道菜');
+        closeModal();
       });
-    }catch(err){toast('文件解析失败')}
+    }catch(err){toast('导入失败：文件解析错误')}
   };
   reader.readAsText(file);
-  input.value='';
+  event.target.value='';
+}
+
+// ===== MQTT Sync =====
+function setSyncStatus(status){
+  syncStatus=status;
+  var dot=$('syncDot');
+  if(!dot)return;
+  dot.className='dot '+({connected:'green',connecting:'yellow',disconnected:'red'}[status]||'red');
 }
 function connectMqtt(){
-  if(!roomId){
-    if(mqttClient){try{mqttClient.end()}catch(e){}mqttClient=null}
-    mqttConnected=false;mqttConnecting=false;
-    updateSyncUI();return;
-  }
   if(typeof mqtt==='undefined'){
-    setTimeout(connectMqtt,500);
+    console.log('[Sync] MQTT library not loaded, local-only mode');
+    setSyncStatus('disconnected');
     return;
   }
-  if(mqttClient){try{mqttClient.end()}catch(e){}}
-  mqttConnecting=true;mqttConnected=false;
-  updateSyncUI();
-  try{
-    var clientId='pupumenu_'+deviceId+'_'+Math.random().toString(16).substr(2,8);
-    mqttClient=mqtt.connect('wss://broker.emqx.io:8084/mqtt',{
-      clientId:clientId,
-      keepalive:30,
-      reconnectPeriod:5000,
-      connectTimeout:10000
-    });
-    mqttClient.on('connect',function(){
-      mqttConnected=true;mqttConnecting=false;
-      updateSyncUI();
-      mqttClient.subscribe('pupumenu/menu/'+roomId+'/state',function(err){
-        if(!err)syncPush();
-      });
-    });
-    mqttClient.on('message',function(topic,payload){
-      try{
-        var data=JSON.parse(payload.toString());
-        if(data.deviceId===deviceId)return;
-        mergeData(data);
-      }catch(e){}
-    });
-    mqttClient.on('error',function(){mqttConnected=false;mqttConnecting=false;updateSyncUI()});
-    mqttClient.on('close',function(){mqttConnected=false;updateSyncUI()});
-    mqttClient.on('reconnect',function(){mqttConnecting=true;updateSyncUI()});
-  }catch(e){
-    mqttConnecting=false;mqttConnected=false;updateSyncUI();
+  if(mqttClient){
+    try{mqttClient.end(true)}catch(e){}
+    mqttClient=null;
   }
+  setSyncStatus('connecting');
+  var topic=getTopic();
+  var clientId='pupumenu_'+getSenderId()+'_'+Date.now().toString(36);
+  try{
+    mqttClient=mqtt.connect(MQTT_URL,{
+      clientId:clientId,
+      clean:true,
+      connectTimeout:10000,
+      reconnectPeriod:5000,
+      keepalive:60
+    });
+  }catch(e){
+    console.log('[Sync] Connect error',e);
+    setSyncStatus('disconnected');
+    return;
+  }
+  mqttClient.on('connect',function(){
+    console.log('[Sync] Connected to EMQX');
+    setSyncStatus('connected');
+    mqttClient.subscribe(topic,{qos:1},function(err){
+      if(err)console.log('[Sync] Subscribe error',err);
+      else console.log('[Sync] Subscribed to',topic);
+    });
+    // Push local state so others get it (retained message will be updated)
+    scheduleSync();
+  });
+  mqttClient.on('message',function(topic,message){
+    try{
+      var data=JSON.parse(message.toString());
+      if(!data||data.senderId===getSenderId())return;
+      // Ignore old messages
+      if(data.ts&&data.ts<=lastIncomingTs)return;
+      lastIncomingTs=data.ts||Date.now();
+      console.log('[Sync] Received state, dishes:',(data.dishes||[]).length);
+      var changed=mergeData(data);
+      if(changed){saveData();renderAll();toast('已同步更新')}
+    }catch(e){console.log('[Sync] Parse error',e)}
+  });
+  mqttClient.on('reconnect',function(){
+    console.log('[Sync] Reconnecting...');
+    setSyncStatus('connecting');
+  });
+  mqttClient.on('close',function(){
+    if(syncStatus==='connected'){setSyncStatus('connecting')}
+  });
+  mqttClient.on('error',function(err){
+    console.log('[Sync] Error',err);
+    setSyncStatus('disconnected');
+  });
+  mqttClient.on('offline',function(){
+    setSyncStatus('disconnected');
+  });
 }
-function mergeData(data){
-  if(!data||!data.dishes)return;
+function mergeData(incoming){
+  if(!incoming)return false;
   var changed=false;
-  data.dishes.forEach(function(remote){
-    var local=dishes.find(function(d){return d.id===remote.id});
-    if(!local){
-      if(deletedIds.indexOf(remote.id)<0){dishes.push(remote);changed=true}
-    }else if((remote.updatedAt||0)>(local.updatedAt||0)){
-      Object.assign(local,remote);changed=true;
+  // Merge deletions
+  if(incoming.deletedIds){
+    incoming.deletedIds.forEach(function(id){
+      if(deletedIds.indexOf(id)<0){deletedIds.push(id);changed=true}
+    });
+  }
+  var before=dishes.length;
+  dishes=dishes.filter(function(d){return deletedIds.indexOf(d.id)<0});
+  if(dishes.length!==before)changed=true;
+  // Merge dishes (LWW by updatedAt)
+  var localMap=new Map(dishes.map(function(d){return[d.id,d]}));
+  (incoming.dishes||[]).forEach(function(inc){
+    if(deletedIds.indexOf(inc.id)>=0)return;
+    var loc=localMap.get(inc.id);
+    if(!loc||(inc.updatedAt||0)>(loc.updatedAt||0)){
+      var merged=Object.assign({},inc);
+      if(!merged.photo&&loc&&loc.photo)merged.photo=loc.photo;
+      localMap.set(inc.id,merged);
+      changed=true;
     }
   });
-  if(data.categories&&Array.isArray(data.categories)){
-    data.categories.forEach(function(c){if(categories.indexOf(c)<0){categories.push(c);changed=true}});
-  }
-  if(data.deletedIds&&Array.isArray(data.deletedIds)){
-    data.deletedIds.forEach(function(id){
-      if(deletedIds.indexOf(id)<0){
-        deletedIds.push(id);
-        dishes=dishes.filter(function(d){return d.id!==id});
-        changed=true;
-      }
+  dishes=Array.from(localMap.values());
+  // Merge categories (union)
+  if(incoming.categories){
+    incoming.categories.forEach(function(c){
+      if(categories.indexOf(c)<0){categories.push(c);changed=true}
     });
   }
-  if(changed){saveData();renderAll();toast('已同步更新')}
+  return changed;
 }
 function scheduleSync(){
-  if(syncTimer)clearTimeout(syncTimer);
-  syncTimer=setTimeout(function(){syncPush()},1500);
+  if(syncTimeout)clearTimeout(syncTimeout);
+  syncTimeout=setTimeout(function(){syncPush(false)},1500);
 }
-function syncPush(){
-  if(!mqttConnected||!mqttClient||!roomId)return;
-  var data={deviceId:deviceId,dishes:dishes,categories:categories,deletedIds:deletedIds,timestamp:Date.now()};
-  try{
-    mqttClient.publish('pupumenu/menu/'+roomId+'/state',JSON.stringify(data));
-    lastSyncData=data;
-  }catch(e){}
-}
-function updateSyncUI(){
-  var dot=$('syncDot'),icon=$('syncIcon');
-  if(!dot||!icon)return;
-  dot.className='dot';
-  if(!roomId){dot.classList.add('red');icon.innerHTML='&#x1F60A;'}
-  else if(mqttConnected){dot.classList.add('green');icon.innerHTML='&#x1F504;'}
-  else if(mqttConnecting){dot.classList.add('yellow');icon.innerHTML='&#x1F504;'}
-  else{dot.classList.add('red');icon.innerHTML='&#x26A0;'}
-}
-function init(){
-  deviceId=getDeviceId();
-  roomId=getRoomId();
-  var urlParams=new URLSearchParams(location.search);
-  var roomParam=urlParams.get('room');
-  if(roomParam&&roomParam!==roomId){setRoomId(roomParam)}
-  loadData();
-  renderAll();
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js?v=31').catch(function(){});
+function syncPush(force){
+  if(!mqttClient||syncStatus!=='connected'){
+    console.log('[Sync] Not connected, skip push');
+    return;
   }
-  connectMqtt();
-  document.addEventListener('visibilitychange',function(){
-    if(!document.hidden&&roomId&&!mqttConnected)connectMqtt();
+  if(isPushing&&!force)return;
+  isPushing=true;
+  var payload={
+    dishes:dishes.map(function(d){return{
+      id:d.id,name:d.name,category:d.category,desc:d.desc,
+      tags:d.tags||[],photo:d.photo||null,
+      createdAt:d.createdAt,updatedAt:d.updatedAt,
+      inMenu:d.inMenu||false,order:d.order||d.createdAt
+    }}),
+    categories:categories,
+    deletedIds:Array.from(new Set(deletedIds)),
+    senderId:getSenderId(),
+    ts:Date.now()
+  };
+  var json=JSON.stringify(payload);
+  var size=new Blob([json]).size;
+  // If too large, strip photos (keep text sync)
+  if(size>900000){
+    console.log('[Sync] Payload too large ('+size+'), stripping photos');
+    payload.dishes=payload.dishes.map(function(d){return Object.assign({},d,{photo:null})});
+    json=JSON.stringify(payload);
+  }
+  mqttClient.publish(getTopic(),json,{qos:1,retain:true},function(err){
+    isPushing=false;
+    if(err)console.log('[Sync] Push error',err);
+    else console.log('[Sync] Pushed, dishes:',payload.dishes.length,'size:',json.length);
   });
+}
+
+// ===== Init =====
+function init(){
+  var savedVer=parseInt(localStorage.getItem('app_ver')||'0');
+  if(savedVer<APP_VERSION){
+    localStorage.setItem('app_ver',String(APP_VERSION));
+    // Clear old cache
+    if('caches' in window){caches.keys().then(function(keys){keys.forEach(function(k){caches.delete(k)})})}
+    if(savedVer>0){location.reload();return}
+  }
+  getSenderId();
+  getRoomId();
+  loadData();
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js?v=31').catch(function(e){console.log('SW err',e)});
+  }
+  renderAll();
+  waitForMqtt(connectMqtt);
+  // Reconnect when page becomes visible again
+  document.addEventListener('visibilitychange',function(){
+    if(!document.hidden&&mqttClient&&syncStatus!=='connected'){
+      try{mqttClient.reconnect()}catch(e){connectMqtt()}
+    }
+  });
+  // Close modals with Escape
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'){
       if($('randomModal').classList.contains('show'))closeRandom();
       else if($('modalBg').classList.contains('show'))closeModal();
     }
   });
+}
+function waitForMqtt(cb){
+  if(typeof mqtt!=='undefined'){cb();return}
+  var tries=0;
+  var t=setInterval(function(){
+    tries++;
+    if(typeof mqtt!=='undefined'){clearInterval(t);cb()}
+    else if(tries>100){clearInterval(t);setSyncStatus('disconnected')}
+  },100);
 }
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init)}else{init()}
 </script>
