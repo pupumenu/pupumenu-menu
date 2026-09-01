@@ -776,11 +776,11 @@ function handlePhoto(input){
   reader.onload=function(e){
     var img=new Image();
     img.onload=function(){
-      var maxW=600,maxH=600,w=img.width,h=img.height;
+      var maxW=800,maxH=800,w=img.width,h=img.height;
       if(w>h){if(w>maxW){h=Math.round(h*maxW/w);w=maxW}}else{if(h>maxH){w=Math.round(w*maxH/h);h=maxH}}
       var c=document.createElement('canvas');c.width=w;c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
-      currentPhoto=c.toDataURL('image/jpeg',0.7);
+      currentPhoto=c.toDataURL('image/jpeg',0.85);
       $('photoPreview').innerHTML='<img src="'+currentPhoto+'">';
     };
     img.src=e.target.result;
@@ -1004,6 +1004,7 @@ function mergeData(incoming){
     var loc=localMap.get(inc.id);
     if(!loc||(inc.updatedAt||0)>(loc.updatedAt||0)){
       var merged=Object.assign({},inc);
+      if(!merged.photo&&loc&&loc.photo)merged.photo=loc.photo;
       localMap.set(inc.id,merged);
       changed=true;
     }
@@ -1042,19 +1043,11 @@ function syncPush(force){
   };
   var json=JSON.stringify(payload);
   var size=new Blob([json]).size;
-  // If too large, strip only the largest photos one by one (not all)
-  var maxSize=1500000;
-  if(size>maxSize){
-    console.log('[Sync] Payload large ('+size+'), stripping big photos');
-    // Sort dishes by photo size descending, strip until under limit
-    var withPhoto=payload.dishes.filter(function(d){return d.photo}).sort(function(a,b){return b.photo.length-a.photo.length});
-    for(var i=0;i<withPhoto.length&&size>maxSize;i++){
-      var d=withPhoto[i];
-      console.log('[Sync] Stripping photo for:',d.name,'('+d.photo.length+' chars)');
-      d.photo=null;
-      json=JSON.stringify(payload);
-      size=new Blob([json]).size;
-    }
+  // If too large, strip photos (keep text sync)
+  if(size>900000){
+    console.log('[Sync] Payload too large ('+size+'), stripping photos');
+    payload.dishes=payload.dishes.map(function(d){return Object.assign({},d,{photo:null})});
+    json=JSON.stringify(payload);
   }
   mqttClient.publish(getTopic(),json,{qos:1,retain:true},function(err){
     isPushing=false;
