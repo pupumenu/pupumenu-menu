@@ -776,11 +776,11 @@ function handlePhoto(input){
   reader.onload=function(e){
     var img=new Image();
     img.onload=function(){
-      var maxW=600,maxH=600,w=img.width,h=img.height;
+      var maxW=700,maxH=700,w=img.width,h=img.height;
       if(w>h){if(w>maxW){h=Math.round(h*maxW/w);w=maxW}}else{if(h>maxH){w=Math.round(w*maxH/h);h=maxH}}
       var c=document.createElement('canvas');c.width=w;c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
-      currentPhoto=c.toDataURL('image/jpeg',0.7);
+      currentPhoto=c.toDataURL('image/jpeg',0.8);
       $('photoPreview').innerHTML='<img src="'+currentPhoto+'">';
     };
     img.src=e.target.result;
@@ -962,9 +962,6 @@ function connectMqtt(){
     try{
       var data=JSON.parse(message.toString());
       if(!data||data.senderId===getSenderId())return;
-      // Ignore old messages
-      if(data.ts&&data.ts<=lastIncomingTs)return;
-      lastIncomingTs=data.ts||Date.now();
       console.log('[Sync] Received state, dishes:',(data.dishes||[]).length);
       var changed=mergeData(data);
       if(changed){saveData();renderAll();toast('已同步更新')}
@@ -1020,7 +1017,7 @@ function mergeData(incoming){
 }
 function scheduleSync(){
   if(syncTimeout)clearTimeout(syncTimeout);
-  syncTimeout=setTimeout(function(){syncPush(false)},1500);
+  syncTimeout=setTimeout(function(){syncPush(false)},500);
 }
 function syncPush(force){
   if(!mqttClient||syncStatus!=='connected'){
@@ -1043,13 +1040,12 @@ function syncPush(force){
   };
   var json=JSON.stringify(payload);
   var size=new Blob([json]).size;
-  // If too large, strip only the largest photos one by one (not all)
-  var maxSize=2000000;
+  var maxSize=1000000;
   if(size>maxSize){
-    console.log('[Sync] Payload large ('+size+'), stripping big photos one by one');
+    console.log('[Sync] Payload large ('+size+'), stripping big photos');
     var withPhoto=payload.dishes.filter(function(d){return d.photo}).sort(function(a,b){return b.photo.length-a.photo.length});
     for(var i=0;i<withPhoto.length&&size>maxSize;i++){
-      console.log('[Sync] Strip photo:',withPhoto[i].name,'('+withPhoto[i].photo.length+' chars)');
+      console.log('[Sync] Strip photo:',withPhoto[i].name);
       withPhoto[i].photo=null;
       json=JSON.stringify(payload);
       size=new Blob([json]).size;
