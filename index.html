@@ -354,7 +354,7 @@ header{
 <div class="toast" id="toast"></div>
 <script>
 // ===== State =====
-var dishes=[], categories=['主菜','配菜','汤品','主食','凉菜','甜品'], deletedIds=[];
+var dishes=[], categories=['主菜','配菜','汤品','主食','凉菜','甜品'], deletedIds=[], categoriesUpdatedAt=0;
 var currentView='grid', currentCat='', editingId=null, currentPhoto='';
 var currentRandomId=null;
 // ===== Sync State =====
@@ -414,6 +414,7 @@ function loadData(){
       dishes=d.dishes||[];
       categories=(Array.isArray(d.categories)&&d.categories.length>0)?d.categories:defaultCats;
       deletedIds=d.deletedIds||[];
+      categoriesUpdatedAt=d.categoriesUpdatedAt||0;
       return;
     }
   }catch(e){}
@@ -427,7 +428,7 @@ function loadData(){
 function saveData(){
   try{
     localStorage.setItem(STORAGE_KEY,JSON.stringify({
-      dishes:dishes,categories:categories,deletedIds:deletedIds
+      dishes:dishes,categories:categories,deletedIds:deletedIds,categoriesUpdatedAt:categoriesUpdatedAt
     }));
   }catch(e){
     // Storage full — strip oldest photos
@@ -436,7 +437,7 @@ function saveData(){
     for(var i=0;i<sorted.length&&i<5;i++){if(sorted[i].photo)sorted[i].photo=null}
     try{
       localStorage.setItem(STORAGE_KEY,JSON.stringify({
-        dishes:dishes,categories:categories,deletedIds:deletedIds
+        dishes:dishes,categories:categories,deletedIds:deletedIds,categoriesUpdatedAt:categoriesUpdatedAt
       }));
     }catch(e2){console.log('[Storage] Still full')}
   }
@@ -484,7 +485,7 @@ function openCatMgr(){
         var old=categories[idx],neu=inp.value.trim();
         if(neu&&old!==neu)oldToNew[old]=neu;
       });
-      categories=newNames;
+      categories=newNames;categoriesUpdatedAt=Date.now();
       dishes.forEach(function(d){
         if(d.category&&oldToNew[d.category])d.category=oldToNew[d.category];
         else if(d.category&&newNames.indexOf(d.category)<0)d.category=newNames[0]||'';
@@ -497,7 +498,7 @@ function openCatMgr(){
 function moveCat(i,dir){
   var j=i+dir;
   if(j<0||j>=categories.length)return;
-  var tmp=categories[i];categories[i]=categories[j];categories[j]=tmp;
+  var tmp=categories[i];categories[i]=categories[j];categories[j]=tmp;categoriesUpdatedAt=Date.now();
   openCatMgr();
 }
 function addCatRow(){
@@ -517,7 +518,7 @@ function deleteCat(i){
   var msg='删除分类「'+removed+'」？';
   if(cnt>0)msg+='该分类下的'+cnt+'道菜会归到第一个分类。';
   showConfirm(msg,function(){
-    categories.splice(i,1);
+    categories.splice(i,1);categoriesUpdatedAt=Date.now();
     dishes.forEach(function(d){if(d.category===removed)d.category=categories[0]||''});
     if(currentCat===removed)currentCat='';
     saveData();renderAll();scheduleSync();closeModal();
@@ -678,7 +679,7 @@ function saveDish(){
   var name=$('dishName').value.trim();
   if(!name){toast('请输入菜名');return}
   var cat=$('dishCat').value.trim()||'未分类';
-  if(categories.indexOf(cat)<0){categories.push(cat)}
+  if(categories.indexOf(cat)<0){categories.push(cat);categoriesUpdatedAt=Date.now();}
   var tags=$('dishTags').value.split(',').map(function(t){return t.trim()}).filter(Boolean);
   var now=Date.now();
   if(editingId){
@@ -1007,11 +1008,15 @@ function mergeData(incoming){
     }
   });
   dishes=Array.from(localMap.values());
-  // Merge categories (union)
-  if(incoming.categories){
-    incoming.categories.forEach(function(c){
-      if(categories.indexOf(c)<0){categories.push(c);changed=true}
-    });
+  // Merge categories (LWW: last writer wins, full replace)
+  if(incoming.categories&&Array.isArray(incoming.categories)&&incoming.categories.length>0){
+    var incCatTs=incoming.categoriesUpdatedAt||0;
+    if(incCatTs>categoriesUpdatedAt){
+      categories=incoming.categories.slice();
+      categoriesUpdatedAt=incCatTs;
+      changed=true;
+      console.log('[Sync] Categories updated via LWW, ts:',incCatTs);
+    }
   }
   return changed;
 }
@@ -1034,6 +1039,7 @@ function syncPush(force){
       inMenu:d.inMenu||false,order:d.order||d.createdAt
     }}),
     categories:categories,
+    categoriesUpdatedAt:categoriesUpdatedAt,
     deletedIds:Array.from(new Set(deletedIds)),
     senderId:getSenderId(),
     ts:Date.now()
