@@ -32,7 +32,7 @@ body{
 }
 
 /* =================== 背景：飘金粉（absolute 而非 fixed,保证移动端能渲染） =================== */
-.spark{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;overflow:hidden;z-index:1}
+.spark{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;overflow:hidden;z-index:6}
 .dust-p{
   position:absolute;top:-12px;width:6px;height:6px;border-radius:50%;
   background:radial-gradient(circle,#fff6c8 0%,#f5d36a 60%,transparent 100%);
@@ -318,7 +318,7 @@ body{
 .xi-rays{display:none}
 
 /* ============== 四彩花瓣雨(absolute,移动端可见) ============== */
-.petal{position:absolute;top:-24px;width:14px;height:14px;border-radius:80% 0 80% 0;pointer-events:none;z-index:2;
+.petal{position:absolute;top:-24px;width:14px;height:14px;border-radius:80% 0 80% 0;pointer-events:none;z-index:6;
   animation:petalFall linear infinite;opacity:0;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.25));
   will-change:transform;
