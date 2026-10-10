@@ -433,6 +433,48 @@ body{
 </div>
 
 <script>
+/* =========== 锁定字体大小（防手机系统"字体大小"设置放大网页文字） =========== */
+(function(){
+  /* ① 微信内置浏览器：调用 JSBridge 将网页字体重置为默认，并监听"调字体"菜单 */
+  function weixinLock(){
+    if(!window.WeixinJSBridge) return;
+    try{
+      WeixinJSBridge.invoke('setFontSizeCallback', {'fontSize': 0});
+      WeixinJSBridge.on('menu:setfont', function(){
+        WeixinJSBridge.invoke('setFontSizeCallback', {'fontSize': 0});
+      });
+    }catch(e){}
+  }
+  if(typeof WeixinJSBridge === 'undefined'){
+    document.addEventListener('WeixinJSBridgeReady', weixinLock, false);
+  }else{
+    weixinLock();
+  }
+
+  /* ② 通用兜底（Chrome/华为浏览器等）：探测实际缩放系数 k，k>1 时用 zoom 反向抵消 */
+  function detectScale(){
+    try{
+      var d = document.createElement('div');
+      d.style.cssText = 'position:absolute;left:-9999px;top:-9999px;font-size:100px;line-height:1;margin:0;padding:0;border:0;';
+      d.textContent = '\u6D4B';
+      document.body.appendChild(d);
+      var h = d.clientHeight;
+      document.body.removeChild(d);
+      return h > 0 ? h/100 : 1;
+    }catch(e){ return 1; }
+  }
+  function neutralize(){
+    try{
+      var k = detectScale();
+      if(k > 1.03 && k < 3){
+        document.body.style.zoom = (1/k).toFixed(4);
+      }
+    }catch(e){}
+  }
+  if(document.readyState === 'complete'){ setTimeout(neutralize, 300); }
+  else{ window.addEventListener('load', function(){ setTimeout(neutralize, 300); }); }
+})();
+
 /* =========== 逐字显现（预渲染撑布局，再依次点亮，高度不变） =========== */
 function typewriter(el, startDelay, step){
   // 1. 拆文本节点：每个字符包一个 span.ch（保留 <br> 与 .em 结构）
