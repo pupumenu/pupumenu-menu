@@ -210,6 +210,24 @@ body{
 .info .k{color:#e8c05e;letter-spacing:6px;margin-right:6px}
 /* addr-tip 文案已删 */
 
+/* ===== 文字图片化（正文/信息/署名转图片,免疫手机系统与微信字体设置） ===== */
+.txt-img{
+  display:block;margin:0 auto;width:86%;max-width:330px;height:auto;
+  -webkit-clip-path:inset(0 0 100% 0);clip-path:inset(0 0 100% 0);
+  animation:typeReveal 2.4s .4s ease-out forwards;
+}
+@keyframes typeReveal{
+  to{-webkit-clip-path:inset(0 0 0% 0);clip-path:inset(0 0 0% 0)}
+}
+.info-img{
+  display:block;margin:22px auto 0;width:88%;max-width:335px;height:auto;
+  opacity:0;animation:fadeUp .8s 1.6s ease-out forwards;
+}
+.sign-img{
+  display:block;margin:30px auto 0;width:52%;max-width:200px;height:auto;
+  opacity:0;animation:fadeUp .8s 2.1s ease-out forwards;
+}
+
 /* 署名 */
 .sign{
   margin-top:30px;text-align:center;color:#f7e3c3;font-size:19px;letter-spacing:4px;line-height:2;
@@ -406,16 +424,11 @@ body{
 
   <div class="divider"><span class="line"></span><span class="dot">❖</span><span class="line"></span></div>
 
-  <div class="text" id="t1">谨定于公历二〇二六年<br>十月二十五日（星期日）<br>下午六时整<br>儿子 <em class="em">贺智康</em> 与儿媳 <em class="em">朱锦玲</em><br>举行结婚典礼</div>
-  <div class="text" id="t2" style="margin-top:4px">敬备喜宴　恭请光临</div>
+  <img class="txt-img" src="text_main.png" alt="谨定于公历二〇二六年十月二十五日（星期日）下午六时整，儿子贺智康与儿媳朱锦玲举行结婚典礼，敬备喜宴，恭请光临">
 
   <div class="divider" style="margin-top:22px"><span class="line"></span><span class="dot">❖</span><span class="line"></span></div>
 
-  <div class="info">
-    <div class="row"><span class="k">席设</span>韶关市武江区惠民南路50号</div>
-    <div class="row">中环广场 6楼 · 小康生活宴会厅</div>
-    <div class="row"><span class="k">时间</span>2026年10月25日 18:00</div>
-  </div>
+  <img class="info-img" src="text_info.png" alt="席设：韶关市武江区惠民南路50号中环广场6楼小康生活宴会厅；时间：2026年10月25日18:00">
 
   <div class="btn-row">
     <a class="t-btn" id="navBtn" href="https://uri.amap.com/marker?position=113.589356,24.796283&name=%E4%B8%AD%E7%8E%AF%E5%B9%BF%E5%9C%BA&src=wedding&callnative=1" target="_blank" rel="noopener">打开地图导航</a>
@@ -423,10 +436,7 @@ body{
   </div>
   <div class="toast" id="toast">地址已复制</div>
 
-  <div class="sign">
-    <div class="who">贺伟强&nbsp;&nbsp;陈艳英</div>
-    <div>敬&nbsp;邀</div>
-  </div>
+  <img class="sign-img" src="text_sign.png" alt="贺伟强 陈艳英 敬邀">
 
   <div class="foot">您的光临是我们最大的荣幸</div>
 
@@ -495,34 +505,7 @@ body{
   });
 })();
 
-/* =========== 逐字显现（预渲染撑布局，再依次点亮，高度不变） =========== */
-function typewriter(el, startDelay, step){
-  // 1. 拆文本节点：每个字符包一个 span.ch（保留 <br> 与 .em 结构）
-  var chars = [];
-  var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-  var nodes = [];
-  while(walker.nextNode()) nodes.push(walker.currentNode);
-  nodes.forEach(function(n){
-    var frag = document.createDocumentFragment();
-    Array.from(n.textContent).forEach(function(ch){
-      if(/\s/.test(ch)){ frag.appendChild(document.createTextNode('\u00A0')); return; }
-      var s = document.createElement('span');
-      s.className = 'ch';
-      s.textContent = ch;
-      chars.push(s);
-      frag.appendChild(s);
-    });
-    n.parentNode.replaceChild(frag, n);
-  });
-  // 2. 按序点亮
-  setTimeout(function(){
-    chars.forEach(function(s, i){
-      setTimeout(function(){ s.classList.add('on'); }, i * step);
-    });
-  }, startDelay);
-}
-typewriter(document.getElementById('t1'), 700, 35);
-typewriter(document.getElementById('t2'), 2000, 45);
+/* =========== 逐字打字已移除：正文改为文字图片（免疫手机字体设置） =========== */
 
 /* =========== 复制地址 =========== */
 var ADDR = '广东省韶关市武江区惠民南路50号中环广场（小康生活宴会厅）';
