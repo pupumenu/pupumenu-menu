@@ -27,21 +27,7 @@ body{
   overflow:hidden;
 }
 
-/* =================== 背景：飘金粉 =================== */
-.spark{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
-.dust-p{
-  position:absolute;top:-10vh;width:6px;height:6px;border-radius:50%;
-  background:radial-gradient(circle,#fff6c8 0%,#f5d36a 60%,transparent 100%);
-  box-shadow:0 0 6px rgba(255,210,120,.8),0 0 14px rgba(255,180,80,.4);
-  animation:fall linear infinite;
-  opacity:0;
-}
-@keyframes fall{
-  0%{transform:translateY(0) translateX(0) scale(.4);opacity:0}
-  10%{opacity:1}
-  90%{opacity:.9}
-  100%{transform:translateY(115vh) translateX(var(--dx,0)) scale(1.1);opacity:0}
-}
+/* =================== 背景层原本有飘金粉/花瓣雨/礼花，手机端看不到，已删 =================== */
 
 /* 卡片 */
 .card{
@@ -157,7 +143,7 @@ body{
   color:#f7e3c3;font-size:15px;line-height:2.3;letter-spacing:1.5px;text-align:center;
   overflow:hidden;
 }
-.text .em{color:#e8c05e}
+.text .em{color:#e8c05e;font-size:1.45em;font-weight:700;letter-spacing:2px}
 .text .ch{
   display:inline-block;opacity:0;transform:translateY(10px) scale(.9);
 }
@@ -195,7 +181,7 @@ body{
   100%{opacity:1;transform:translateY(0)}
 }
 .info .k{color:#e8c05e;letter-spacing:6px;text-indent:6px}
-.addr-tip{text-align:center;color:#d8a94e;font-size:13px;letter-spacing:4px;margin-top:10px;opacity:.85}
+/* 恭候光临·敬备喜筵(已删) */
 
 /* 署名 */
 .sign{
@@ -225,23 +211,7 @@ body{
   100%{transform:rotate(-8deg) translateY(0);opacity:1}
 }
 
-/* 礼花 */
-.firework{
-  position:absolute;width:8px;height:8px;border-radius:50%;pointer-events:none;
-  animation:fwUp 4s ease-out infinite;
-  opacity:0;
-}
-.fw1{left:20%;background:radial-gradient(circle,#fff5c0,#ffae3a 60%,transparent 100%);animation-delay:.8s}
-.fw2{left:50%;background:radial-gradient(circle,#ffd6e7,#ff6b9d 60%,transparent 100%);animation-delay:1.6s;width:6px;height:6px}
-.fw3{left:75%;background:radial-gradient(circle,#c8ffe0,#52c878 60%,transparent 100%);animation-delay:2.3s;width:7px;height:7px}
-.fw4{left:35%;background:radial-gradient(circle,#fff5c0,#ffae3a 60%,transparent 100%);animation-delay:3.1s;width:5px;height:5px}
-.fw5{left:65%;background:radial-gradient(circle,#e0d4ff,#9d6bff 60%,transparent 100%);animation-delay:1.2s;width:6px;height:6px}
-@keyframes fwUp{
-  0%{transform:translateY(0) scale(.4);opacity:0}
-  15%{opacity:1;transform:translateY(-20px) scale(1)}
-  85%{opacity:.7;transform:translateY(-200px) scale(.6)}
-  100%{opacity:0;transform:translateY(-260px) scale(.2)}
-}
+/* ============== 礼花(背景层,已删) ============== */
 
 /* 底部 */
 .foot{
@@ -312,17 +282,7 @@ body{
 /* ============== 囍字背后放射光芒 ============== (已删) */
 .xi-rays{display:none}
 
-/* ============== 四彩花瓣雨 ============== */
-.petal{position:fixed;top:-12vh;width:14px;height:14px;border-radius:80% 0 80% 0;pointer-events:none;z-index:2;
-  animation:petalFall linear infinite;opacity:0;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.25));
-}
-@keyframes petalFall{
-  0%{transform:translateY(0) rotate(0);opacity:0}
-  8%{opacity:1}
-  92%{opacity:.85}
-  100%{transform:translateY(115vh) translateX(var(--dx,0)) rotate(720deg);opacity:0}
-}
+/* ============== 四彩花瓣雨(背景层,已删) ============== */
 
 /* ============== 署名金印章（已删） ============== */
 
@@ -369,11 +329,6 @@ body{
 </head>
 <body>
 
-<!-- 飘金粉 -->
-<div class="spark" id="spark"></div>
-<!-- 花瓣雨 -->
-<div id="petals"></div>
-
 <div class="card">
   <span class="corner c-tl"></span><span class="corner c-tr"></span>
   <span class="corner c-br"></span><span class="corner c-bl"></span>
@@ -382,13 +337,6 @@ body{
   <!-- 红双灯笼 -->
   <div class="lantern l"><div class="char">囍</div><span class="tassel"></span></div>
   <div class="lantern r"><div class="char">囍</div><span class="tassel"></span></div>
-
-  <!-- 礼花 -->
-  <span class="firework fw1"></span>
-  <span class="firework fw2"></span>
-  <span class="firework fw3"></span>
-  <span class="firework fw4"></span>
-  <span class="firework fw5"></span>
 
   <div class="shuangxi-wrap">
     <div class="shuangxi">囍</div>
@@ -408,9 +356,6 @@ body{
     <div class="row"><span class="k">时间</span><span>2026年10月25日 18:00</span></div>
   </div>
 
-  <div class="addr-tip">恭候光临&nbsp;·&nbsp;敬备喜筵</div>
-
-  <!-- 导航 / 复制地址 -->
   <div class="btn-row">
     <a class="t-btn" id="navBtn" href="https://uri.amap.com/marker?position=113.589356,24.796283&name=%E4%B8%AD%E7%8E%AF%E5%B9%BF%E5%9C%BA&src=wedding&callnative=1" target="_blank" rel="noopener">打开地图导航</a>
     <button class="t-btn ghost" onclick="copyAddr()">复制地址</button>
@@ -486,38 +431,8 @@ function copyAddr(){
   }
 }
 
-/* =========== 飘金粉 =========== */
-var spark = document.getElementById('spark');
-for(var i=0;i<24;i++){
-  var d = document.createElement('span');
-  d.className = 'dust-p';
-  d.style.left = Math.random()*100 + '%';
-  d.style.setProperty('--dx', (Math.random()*80-20) + 'px');
-  d.style.animationDuration = (6 + Math.random()*7) + 's';
-  d.style.animationDelay = (-Math.random()*10) + 's';
-  d.style.width = d.style.height = (3 + Math.random()*4) + 'px';
-  spark.appendChild(d);
-}
-
-/* =========== 四彩花瓣雨 =========== */
-var petalColors = [
-  'radial-gradient(circle at 30% 30%,#ffd1d6,#ff4a6a 60%,#a31830 100%)',
-  'radial-gradient(circle at 30% 30%,#fff5c0,#f2d78e 60%,#b8862a 100%)',
-  'radial-gradient(circle at 30% 30%,#ffd0a0,#ff8c42 60%,#c54a18 100%)',
-  'radial-gradient(circle at 30% 30%,#ffc8e0,#ff5fa3 60%,#a8306a 100%)'
-];
-var petalsBox = document.getElementById('petals');
-for(var i=0;i<22;i++){
-  var p = document.createElement('span');
-  p.className = 'petal';
-  p.style.left = Math.random()*100 + '%';
-  p.style.background = petalColors[Math.floor(Math.random()*petalColors.length)];
-  p.style.setProperty('--dx', (Math.random()*160-80) + 'px');
-  p.style.animationDuration = (8 + Math.random()*9) + 's';
-  p.style.animationDelay = (-Math.random()*14) + 's';
-  p.style.transform = 'scale(' + (0.6 + Math.random()*0.7) + ')';
-  petalsBox.appendChild(p);
-}
+/* =========== 飘金粉(背景层,已删) =========== */
+/* =========== 四彩花瓣雨(背景层,已删) =========== */
 
 /* =========== 点击放大囍字 =========== */
 document.querySelector('.shuangxi').addEventListener('click',function(){
