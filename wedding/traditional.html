@@ -505,15 +505,21 @@ var petalColors = [
   'radial-gradient(circle at 30% 30%,#ffc8e0,#ff5fa3 60%,#a8306a 100%)'
 ];
 var petalsBox = document.getElementById('petals');
-for(var i=0;i<11;i++){
+var PN = 11;
+for(var i=0;i<PN;i++){
   var p = document.createElement('span');
   p.className = 'petal';
-  p.style.left = Math.random()*100 + '%';
-  p.style.background = petalColors[Math.floor(Math.random()*petalColors.length)];
-  p.style.setProperty('--dx', (Math.random()*160-80) + 'px');
-  p.style.animationDuration = (8 + Math.random()*9) + 's';
-  p.style.animationDelay = (-Math.random()*14) + 's';
-  p.style.transform = 'scale(' + (0.6 + Math.random()*0.7) + ')';
+  /* 横向：等分车道 + 轻微抖动，左右分布均匀不扎堆 */
+  p.style.left = ((i + 0.5) / PN * 100 + (Math.random()*8-4)).toFixed(2) + '%';
+  /* 颜色轮转，四色均衡铺开 */
+  p.style.background = petalColors[i % petalColors.length];
+  /* 横向漂移收窄，避免飘进邻近车道 */
+  p.style.setProperty('--dx', (Math.random()*90-45) + 'px');
+  var dur = 9.5 + (i % 3) * 2;          /* 9.5 / 11.5 / 13.5 三档交错 */
+  p.style.animationDuration = dur + 's';
+  /* 时间：按车道序号均匀铺满一个下落周期，避免同时涌现 */
+  p.style.animationDelay = (-(i / PN) * dur - Math.random()*0.6) + 's';
+  p.style.transform = 'scale(' + (0.7 + Math.random()*0.5) + ')';
   petalsBox.appendChild(p);
 }
 
