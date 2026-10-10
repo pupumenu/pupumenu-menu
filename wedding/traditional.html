@@ -11,73 +11,242 @@
 <meta property="og:image" content="https://pupumenu.github.io/pupumenu-menu/wedding/banner.jpg">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{background:#7e0f13}
-body{
+html,body{
+  background:#5e0e10;
   font-family:"STKaiti","KaiTi","楷体","Noto Serif SC","Songti SC","SimSun",serif;
-  min-height:100vh;display:flex;justify-content:center;
+  min-height:100vh;overflow-x:hidden;
+}
+body{
+  display:flex;justify-content:center;align-items:flex-start;
   background:
-    radial-gradient(circle at 50% 0%,rgba(255,190,120,.14),transparent 55%),
-    #7e0f13;
-  padding:26px 14px 40px;
+    radial-gradient(ellipse at 50% 0%,rgba(255,200,140,.18),transparent 60%),
+    radial-gradient(ellipse at 50% 100%,rgba(120,20,20,.4),transparent 60%),
+    linear-gradient(180deg,#7e0f13 0%,#5a0a0d 100%);
+  padding:18px 14px 60px;
+  position:relative;
+  overflow:hidden;
 }
+
+/* =================== 背景：飘金粉 =================== */
+.spark{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.dust-p{
+  position:absolute;top:-10vh;width:6px;height:6px;border-radius:50%;
+  background:radial-gradient(circle,#fff6c8 0%,#f5d36a 60%,transparent 100%);
+  box-shadow:0 0 6px rgba(255,210,120,.8),0 0 14px rgba(255,180,80,.4);
+  animation:fall linear infinite;
+  opacity:0;
+}
+@keyframes fall{
+  0%{transform:translateY(0) translateX(0) scale(.4);opacity:0}
+  10%{opacity:1}
+  90%{opacity:.9}
+  100%{transform:translateY(115vh) translateX(var(--dx,0)) scale(1.1);opacity:0}
+}
+
+/* 卡片 */
 .card{
-  width:100%;max-width:430px;position:relative;
-  background:linear-gradient(160deg,#a3181d 0%,#8e1418 45%,#7a0f13 100%);
+  width:100%;max-width:430px;position:relative;z-index:5;
+  background:linear-gradient(160deg,#a3181d 0%,#8e1418 45%,#6e0d11 100%);
   border:1px solid #d8a94e;
-  box-shadow:0 0 0 6px #a3181d,0 0 0 7px #d8a94e,0 18px 40px rgba(0,0,0,.5);
-  padding:38px 26px 34px;
+  box-shadow:0 0 0 6px #a3181d,0 0 0 7px #d8a94e,0 18px 50px rgba(0,0,0,.55);
+  padding:34px 24px 30px;
+  animation:cardIn 1.2s cubic-bezier(.2,.7,.3,1.2) both;
 }
+@keyframes cardIn{
+  0%{opacity:0;transform:translateY(40px) scale(.94);filter:blur(8px)}
+  60%{opacity:1;filter:blur(0)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+
 /* 内金色细框 */
 .card::before{
   content:"";position:absolute;inset:10px;pointer-events:none;
-  border:1px solid rgba(216,169,78,.65);
+  border:1px solid rgba(216,169,78,.7);
 }
+/* 顶部金色光带 - 走马灯效果 */
+.card::after{
+  content:"";position:absolute;left:10px;right:10px;top:10px;height:1px;
+  background:linear-gradient(90deg,transparent 0%,#fff5c0 30%,#d8a94e 50%,#fff5c0 70%,transparent 100%);
+  background-size:200% 100%;
+  animation:shineLine 3.5s linear infinite;
+  pointer-events:none;z-index:2;
+}
+@keyframes shineLine{
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
+}
+
 /* 四角花纹 */
-.corner{position:absolute;width:26px;height:26px;pointer-events:none;opacity:.9}
+.corner{position:absolute;width:30px;height:30px;pointer-events:none;opacity:.95;z-index:3}
 .corner::before,.corner::after{content:"";position:absolute;background:#d8a94e}
-.corner::before{width:100%;height:2px}
-.corner::after{width:2px;height:100%}
-.c-tl{top:16px;left:16px}
-.c-tr{top:16px;right:16px;transform:rotate(90deg)}
-.c-br{bottom:16px;right:16px;transform:rotate(180deg)}
-.c-bl{bottom:16px;left:16px;transform:rotate(270deg)}
+.corner::before{width:100%;height:2px;box-shadow:0 0 4px rgba(232,192,94,.6)}
+.corner::after{width:2px;height:100%;box-shadow:0 0 4px rgba(232,192,94,.6)}
+.c-tl{top:14px;left:14px}
+.c-tr{top:14px;right:14px;transform:rotate(90deg)}
+.c-br{bottom:14px;right:14px;transform:rotate(180deg)}
+.c-bl{bottom:14px;left:14px;transform:rotate(270deg)}
+
+/* 烛火（顶部两侧） */
+.candle{position:absolute;top:-12px;width:18px;height:34px;z-index:4}
+.candle::before{content:"";position:absolute;bottom:0;left:3px;width:12px;height:18px;
+  background:linear-gradient(180deg,#f7e3c3,#d8a94e);border-radius:2px;box-shadow:inset 0 0 4px rgba(255,220,140,.8)}
+.flame{position:absolute;left:5px;bottom:14px;width:8px;height:14px;
+  background:radial-gradient(ellipse at 50% 80%,#fff7d0 0%,#ffcb52 50%,#ff7a26 80%,transparent 100%);
+  border-radius:50% 50% 30% 30% / 60% 60% 40% 40%;
+  filter:blur(.5px);
+  transform-origin:50% 100%;
+  animation:flicker .6s ease-in-out infinite alternate;
+}
+.flame::after{content:"";position:absolute;inset:-6px;
+  background:radial-gradient(circle,rgba(255,180,80,.45) 0%,transparent 70%);border-radius:50%;
+  animation:flickerGlow 1.4s ease-in-out infinite alternate;
+}
+@keyframes flicker{
+  0%{transform:scale(1) rotate(-4deg) translateY(0)}
+  50%{transform:scale(1.1,.95) rotate(3deg) translateY(-1px)}
+  100%{transform:scale(.92,1.05) rotate(-2deg) translateY(.5px)}
+}
+@keyframes flickerGlow{
+  0%{opacity:.6;transform:scale(1)}
+  100%{opacity:1;transform:scale(1.4)}
+}
+.candle.l{left:30px}
+.candle.r{right:30px}
 
 /* 囍 */
+.shuangxi-wrap{position:relative;text-align:center;margin-bottom:6px;margin-top:8px}
 .shuangxi{
-  text-align:center;font-size:88px;color:#e8c05e;line-height:1;margin-bottom:6px;
-  text-shadow:0 0 14px rgba(232,192,94,.45),0 2px 0 rgba(0,0,0,.28);
+  display:inline-block;font-size:88px;color:#e8c05e;line-height:1;
   font-family:"STKaiti","KaiTi","楷体",serif;font-weight:700;
+  text-shadow:0 0 14px rgba(232,192,94,.5),0 0 28px rgba(232,130,0,.45),0 2px 0 rgba(0,0,0,.3);
+  animation:xiBreath 2.6s ease-in-out infinite,xiFlash 5s ease-in-out infinite;
+  position:relative;
+}
+.shuangxi::before{
+  content:"";position:absolute;inset:-20px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,210,120,.35) 0%,transparent 60%);
+  animation:xiHalo 2.6s ease-in-out infinite;
+  z-index:-1;
+}
+@keyframes xiBreath{
+  0%,100%{filter:brightness(1) drop-shadow(0 0 6px rgba(255,180,80,.6))}
+  50%{filter:brightness(1.2) drop-shadow(0 0 14px rgba(255,210,120,.9))}
+}
+@keyframes xiFlash{
+  0%,90%,100%{color:#e8c05e}
+  93%{color:#fff5c0}
+}
+@keyframes xiHalo{
+  0%,100%{opacity:.4;transform:scale(.9)}
+  50%{opacity:.85;transform:scale(1.15)}
 }
 .xi-sub{
   text-align:center;color:#e8c05e;font-size:15px;letter-spacing:10px;text-indent:10px;
-  margin-bottom:26px;opacity:.92;
+  margin-bottom:20px;opacity:.92;
 }
-.divider{display:flex;align-items:center;gap:10px;margin:0 4px 24px}
+
+/* 分隔 */
+.divider{display:flex;align-items:center;gap:10px;margin:0 4px 20px}
 .divider .line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#d8a94e)}
 .divider .line:last-child{background:linear-gradient(270deg,transparent,#d8a94e)}
-.divider .dot{color:#d8a94e;font-size:13px}
+.divider .dot{color:#d8a94e;font-size:13px;animation:spin 12s linear infinite}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
 
 /* 正文 */
-.text{color:#f7e3c3;font-size:15px;line-height:2.25;letter-spacing:1.5px;text-align:center;text-indent:0}
+.text{
+  color:#f7e3c3;font-size:15px;line-height:2.3;letter-spacing:1.5px;text-align:center;
+  overflow:hidden;
+}
 .text .em{color:#e8c05e}
-.couple-line{margin:14px 0 4px;font-size:27px;letter-spacing:6px;color:#e8c05e;text-align:center;
-  text-shadow:0 0 10px rgba(232,192,94,.35);font-weight:700;}
-.couple-line .he{color:#f7e3c3;font-size:19px;letter-spacing:2px;opacity:.9}
+.text .ch{
+  display:inline-block;opacity:0;transform:translateY(8px);
+  animation:chIn .55s cubic-bezier(.3,.6,.4,1.4) forwards;
+}
+@keyframes chIn{
+  0%{opacity:0;transform:translateY(10px) scale(.9);color:#fff5c0;text-shadow:0 0 8px rgba(255,220,140,.8)}
+  60%{opacity:1;transform:translateY(-2px) scale(1.05)}
+  100%{opacity:1;transform:translateY(0) scale(1);color:#f7e3c3;text-shadow:none}
+}
 
-.info{margin:22px auto 0;max-width:330px}
-.info .row{display:flex;justify-content:center;gap:8px;color:#f7e3c3;font-size:17px;
-  letter-spacing:2px;line-height:2;margin-bottom:4px;flex-wrap:wrap}
+.couple-line{
+  margin:14px 0 6px;font-size:27px;letter-spacing:6px;color:#e8c05e;text-align:center;
+  text-shadow:0 0 10px rgba(232,192,94,.4);font-weight:700;
+  animation:coupleGlow 3s ease-in-out infinite;
+}
+.couple-line .he{color:#f7e3c3;font-size:19px;letter-spacing:2px;opacity:.9}
+@keyframes coupleGlow{
+  0%,100%{text-shadow:0 0 8px rgba(232,192,94,.3)}
+  50%{text-shadow:0 0 18px rgba(255,220,140,.8),0 0 30px rgba(255,180,80,.4)}
+}
+
+.info{margin:22px auto 0;max-width:340px}
+.info .row{
+  display:flex;justify-content:center;gap:8px;color:#f7e3c3;font-size:17px;
+  letter-spacing:2px;line-height:2;margin-bottom:4px;flex-wrap:wrap;
+  opacity:0;animation:fadeUp .8s ease-out forwards;
+}
+.info .row:nth-child(1){animation-delay:1.6s}
+.info .row:nth-child(2){animation-delay:1.85s}
+.info .row:nth-child(3){animation-delay:2.1s}
+@keyframes fadeUp{
+  0%{opacity:0;transform:translateY(8px)}
+  100%{opacity:1;transform:translateY(0)}
+}
 .info .k{color:#e8c05e;letter-spacing:6px;text-indent:6px}
 .addr-tip{text-align:center;color:#d8a94e;font-size:13px;letter-spacing:4px;margin-top:10px;opacity:.85}
 
 /* 署名 */
-.sign{margin-top:30px;text-align:center;color:#f7e3c3;font-size:19px;letter-spacing:4px;line-height:2}
+.sign{
+  margin-top:30px;text-align:center;color:#f7e3c3;font-size:19px;letter-spacing:4px;line-height:2;
+  position:relative;
+}
 .sign .who{color:#e8c05e;font-size:21px;letter-spacing:6px}
 
-/* 底部小字 */
+/* 印章 */
+.seal{
+  display:inline-block;width:62px;height:62px;line-height:60px;
+  border:3px solid #c8161d;border-radius:6px;
+  color:#c8161d;font-size:22px;font-weight:700;letter-spacing:2px;
+  background:rgba(255,220,140,.05);
+  text-align:center;
+  font-family:"STKaiti","KaiTi","楷体",serif;
+  position:absolute;right:8px;top:-12px;
+  transform:rotate(-8deg) translateY(-50px);opacity:0;
+  box-shadow:inset 0 0 8px rgba(200,22,29,.18);
+  animation:sealDrop .9s cubic-bezier(.4,.2,.3,1.5) 2.4s forwards;
+}
+.seal::before{content:"";position:absolute;inset:-1px;border:1px solid rgba(200,22,29,.5);border-radius:6px}
+@keyframes sealDrop{
+  0%{transform:rotate(-8deg) translateY(-50px);opacity:0}
+  60%{transform:rotate(-12deg) translateY(6px);opacity:1}
+  80%{transform:rotate(-7deg) translateY(-2px)}
+  100%{transform:rotate(-8deg) translateY(0);opacity:1}
+}
+
+/* 礼花 */
+.firework{
+  position:absolute;width:8px;height:8px;border-radius:50%;pointer-events:none;
+  animation:fwUp 4s ease-out infinite;
+  opacity:0;
+}
+.fw1{left:20%;background:radial-gradient(circle,#fff5c0,#ffae3a 60%,transparent 100%);animation-delay:.8s}
+.fw2{left:50%;background:radial-gradient(circle,#ffd6e7,#ff6b9d 60%,transparent 100%);animation-delay:1.6s;width:6px;height:6px}
+.fw3{left:75%;background:radial-gradient(circle,#c8ffe0,#52c878 60%,transparent 100%);animation-delay:2.3s;width:7px;height:7px}
+.fw4{left:35%;background:radial-gradient(circle,#fff5c0,#ffae3a 60%,transparent 100%);animation-delay:3.1s;width:5px;height:5px}
+.fw5{left:65%;background:radial-gradient(circle,#e0d4ff,#9d6bff 60%,transparent 100%);animation-delay:1.2s;width:6px;height:6px}
+@keyframes fwUp{
+  0%{transform:translateY(0) scale(.4);opacity:0}
+  15%{opacity:1;transform:translateY(-20px) scale(1)}
+  85%{opacity:.7;transform:translateY(-200px) scale(.6)}
+  100%{opacity:0;transform:translateY(-260px) scale(.2)}
+}
+
+/* 底部 */
 .foot{
   margin-top:26px;text-align:center;color:#c99a4e;font-size:12px;letter-spacing:3px;opacity:.8;
+  opacity:0;animation:fadeUp .8s ease-out 2.6s forwards;
 }
+
 @media(max-width:380px){
   .shuangxi{font-size:72px}
   .couple-line{font-size:23px;letter-spacing:4px}
@@ -86,26 +255,33 @@ body{
 </style>
 </head>
 <body>
+
+<!-- 飘金粉 -->
+<div class="spark" id="spark"></div>
+
 <div class="card">
   <span class="corner c-tl"></span><span class="corner c-tr"></span>
   <span class="corner c-br"></span><span class="corner c-bl"></span>
 
-  <div class="shuangxi">囍</div>
+  <!-- 烛火 -->
+  <div class="candle l"><span class="flame"></span></div>
+  <div class="candle r"><span class="flame"></span></div>
+
+  <!-- 礼花 -->
+  <span class="firework fw1"></span>
+  <span class="firework fw2"></span>
+  <span class="firework fw3"></span>
+  <span class="firework fw4"></span>
+  <span class="firework fw5"></span>
+
+  <div class="shuangxi-wrap"><div class="shuangxi">囍</div></div>
   <div class="xi-sub">结　婚　请　柬</div>
 
   <div class="divider"><span class="line"></span><span class="dot">❖</span><span class="line"></span></div>
 
-  <div class="text">
-    谨定于公历二〇二六年<br>
-    十月二十五日（星期日）<br>
-    晚六时三十分<br>
-    为小儿 <span class="em">贺智康</span> 与 <span class="em">朱锦玲</span> 女士<br>
-    举行结婚典礼
-  </div>
-
+  <div class="text" id="t1"></div>
   <div class="couple-line">智康 <span class="he">与</span> 锦玲</div>
-
-  <div class="text" style="margin-top:4px">敬备喜宴&nbsp;&nbsp;恭请光临</div>
+  <div class="text" id="t2" style="margin-top:4px"></div>
 
   <div class="divider" style="margin-top:22px"><span class="line"></span><span class="dot">❖</span><span class="line"></span></div>
 
@@ -120,9 +296,54 @@ body{
   <div class="sign">
     <div class="who">贺府双亲</div>
     <div>敬&nbsp;邀</div>
+    <div class="seal">贺府</div>
   </div>
 
   <div class="foot">您的光临是我们最大的荣幸</div>
 </div>
+
+<script>
+/* =========== 逐字显现 =========== */
+function typeText(el, html, startDelay, perChar){
+  var i = 0, len = html.length;
+  setTimeout(function tick(){
+    if(i >= len) return;
+    var ch = html.charAt(i++);
+    var sp = document.createElement('span');
+    sp.className = 'ch';
+    sp.style.animationDelay = (i * perChar) + 'ms';
+    if(ch === '<'){ sp.innerHTML = '<br>'; sp.className = 'ch'; }
+    else sp.textContent = ch;
+    el.appendChild(sp);
+    setTimeout(tick, perChar);
+  }, startDelay);
+}
+var t1 = document.getElementById('t1');
+var t2 = document.getElementById('t2');
+typeText(t1,
+  '谨定于公历二〇二六年<br>十月二十五日（星期日）<br>晚六时三十分<br>为小儿 <em class="em">贺智康</em> 与 <em class="em">朱锦玲</em> 女士<br>举行结婚典礼',
+  700, 70);
+typeText(t2, '敬备喜宴&nbsp;&nbsp;恭请光临', 2300, 90);
+
+/* =========== 飘金粉 =========== */
+var spark = document.getElementById('spark');
+for(var i=0;i<24;i++){
+  var d = document.createElement('span');
+  d.className = 'dust-p';
+  d.style.left = Math.random()*100 + '%';
+  d.style.setProperty('--dx', (Math.random()*80-20) + 'px');
+  d.style.animationDuration = (6 + Math.random()*7) + 's';
+  d.style.animationDelay = (-Math.random()*10) + 's';
+  d.style.width = d.style.height = (3 + Math.random()*4) + 'px';
+  spark.appendChild(d);
+}
+
+/* =========== 点击放大囍字 =========== */
+document.querySelector('.shuangxi').addEventListener('click',function(){
+  this.style.transition='transform .5s';
+  this.style.transform='scale(1.18)';
+  setTimeout(()=>this.style.transform='scale(1)',350);
+});
+</script>
 </body>
 </html>
