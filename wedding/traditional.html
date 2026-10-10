@@ -484,8 +484,15 @@ body{
       }
     }catch(e){}
   }
-  if(document.readyState === 'complete'){ setTimeout(neutralize, 300); }
-  else{ window.addEventListener('load', function(){ setTimeout(neutralize, 300); }); }
+  /* 多次校正：字体加载/内核生效时机不一，隔几个时间点反复测（幂等，已抵消后再测 k≈1 不会重复缩放） */
+  function scheduleNeutralize(){
+    [200, 600, 1200, 2400].forEach(function(t){ setTimeout(neutralize, t); });
+  }
+  if(document.readyState === 'complete'){ scheduleNeutralize(); }
+  else{ window.addEventListener('load', scheduleNeutralize); }
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) setTimeout(neutralize, 100);
+  });
 })();
 
 /* =========== 逐字显现（预渲染撑布局，再依次点亮，高度不变） =========== */
