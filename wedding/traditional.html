@@ -159,14 +159,16 @@ body{
 }
 .text .em{color:#e8c05e}
 .text .ch{
-  display:inline-block;opacity:0;transform:translateY(8px);
-  animation:chIn .55s cubic-bezier(.3,.6,.4,1.4) forwards;
+  display:inline-block;opacity:0;transform:translateY(10px) scale(.9);
 }
+.text .ch.on{animation:chIn .4s cubic-bezier(.3,.6,.4,1.4) forwards}
 @keyframes chIn{
   0%{opacity:0;transform:translateY(10px) scale(.9);color:#fff5c0;text-shadow:0 0 8px rgba(255,220,140,.8)}
-  60%{opacity:1;transform:translateY(-2px) scale(1.05)}
-  100%{opacity:1;transform:translateY(0) scale(1);color:#f7e3c3;text-shadow:none}
+  60%{opacity:1;transform:translateY(-2px) scale(1.05);color:#f7e3c3}
+  100%{opacity:1;transform:translateY(0) scale(1);text-shadow:none}
 }
+/* 名字（.em 内）点亮后保持金色 */
+.text .em .ch{color:#e8c05e}
 
 .couple-line{
   margin:14px 0 6px;font-size:27px;letter-spacing:6px;color:#e8c05e;text-align:center;
@@ -247,6 +249,32 @@ body{
   opacity:0;animation:fadeUp .8s ease-out 2.6s forwards;
 }
 
+/* ===== 导航 / 复制按钮 ===== */
+.btn-row{display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap}
+.t-btn{
+  font-family:inherit;font-size:16px;letter-spacing:2px;cursor:pointer;
+  background:linear-gradient(#f2d78e,#d8a94e);color:#6e0d11;
+  border:2px solid #8a6a2a;border-radius:10px;padding:10px 20px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 4px 0 #8a6a2a;
+  text-decoration:none;display:inline-flex;align-items:center;gap:6px;
+  opacity:0;animation:fadeUp .8s ease-out 2.3s forwards;
+}
+.t-btn:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 2px 0 #8a6a2a}
+.t-btn.ghost{
+  background:linear-gradient(#a3181d,#8e1418);color:#f2d78e;
+  border:2px solid #d8a94e;box-shadow:0 4px 0 #5a0a0d;
+}
+.t-btn.ghost:active{box-shadow:0 2px 0 #5a0a0d}
+
+/* 复制成功提示 */
+.toast{
+  position:fixed;left:50%;bottom:12%;transform:translateX(-50%) translateY(20px);
+  background:rgba(40,10,10,.92);color:#f2d78e;border:1px solid #d8a94e;
+  font-size:14px;letter-spacing:2px;padding:10px 22px;border-radius:22px;
+  opacity:0;pointer-events:none;transition:all .35s;z-index:99;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
 @media(max-width:380px){
   .shuangxi{font-size:72px}
   .couple-line{font-size:23px;letter-spacing:4px}
@@ -279,9 +307,9 @@ body{
 
   <div class="divider"><span class="line"></span><span class="dot">❖</span><span class="line"></span></div>
 
-  <div class="text" id="t1"></div>
+  <div class="text" id="t1">谨定于公历二〇二六年<br>十月二十五日（星期日）<br>晚六时三十分<br>为小儿 <em class="em">贺智康</em> 与 <em class="em">朱锦玲</em> 女士<br>举行结婚典礼</div>
   <div class="couple-line">智康 <span class="he">与</span> 锦玲</div>
-  <div class="text" id="t2" style="margin-top:4px"></div>
+  <div class="text" id="t2" style="margin-top:4px">敬备喜宴　恭请光临</div>
 
   <div class="divider" style="margin-top:22px"><span class="line"></span><span class="dot">❖</span><span class="line"></span></div>
 
@@ -293,6 +321,13 @@ body{
 
   <div class="addr-tip">恭候光临&nbsp;·&nbsp;敬备喜筵</div>
 
+  <!-- 导航 / 复制地址 -->
+  <div class="btn-row">
+    <a class="t-btn" id="navBtn" href="https://uri.amap.com/marker?position=113.589356,24.796283&name=%E4%B8%AD%E7%8E%AF%E5%B9%BF%E5%9C%BA&src=wedding&callnative=1" target="_blank" rel="noopener">🗺️ 打开地图导航</a>
+    <button class="t-btn ghost" onclick="copyAddr()">📋 复制地址</button>
+  </div>
+  <div class="toast" id="toast">地址已复制</div>
+
   <div class="sign">
     <div class="who">贺府双亲</div>
     <div>敬&nbsp;邀</div>
@@ -303,27 +338,56 @@ body{
 </div>
 
 <script>
-/* =========== 逐字显现 =========== */
-function typeText(el, html, startDelay, perChar){
-  var i = 0, len = html.length;
-  setTimeout(function tick(){
-    if(i >= len) return;
-    var ch = html.charAt(i++);
-    var sp = document.createElement('span');
-    sp.className = 'ch';
-    sp.style.animationDelay = (i * perChar) + 'ms';
-    if(ch === '<'){ sp.innerHTML = '<br>'; sp.className = 'ch'; }
-    else sp.textContent = ch;
-    el.appendChild(sp);
-    setTimeout(tick, perChar);
+/* =========== 逐字显现（预渲染撑布局，再依次点亮，高度不变） =========== */
+function typewriter(el, startDelay, step){
+  // 1. 拆文本节点：每个字符包一个 span.ch（保留 <br> 与 .em 结构）
+  var chars = [];
+  var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+  var nodes = [];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(function(n){
+    var frag = document.createDocumentFragment();
+    Array.from(n.textContent).forEach(function(ch){
+      if(/\s/.test(ch)){ frag.appendChild(document.createTextNode('\u00A0')); return; }
+      var s = document.createElement('span');
+      s.className = 'ch';
+      s.textContent = ch;
+      chars.push(s);
+      frag.appendChild(s);
+    });
+    n.parentNode.replaceChild(frag, n);
+  });
+  // 2. 按序点亮
+  setTimeout(function(){
+    chars.forEach(function(s, i){
+      setTimeout(function(){ s.classList.add('on'); }, i * step);
+    });
   }, startDelay);
 }
-var t1 = document.getElementById('t1');
-var t2 = document.getElementById('t2');
-typeText(t1,
-  '谨定于公历二〇二六年<br>十月二十五日（星期日）<br>晚六时三十分<br>为小儿 <em class="em">贺智康</em> 与 <em class="em">朱锦玲</em> 女士<br>举行结婚典礼',
-  700, 70);
-typeText(t2, '敬备喜宴&nbsp;&nbsp;恭请光临', 2300, 90);
+typewriter(document.getElementById('t1'), 700, 35);
+typewriter(document.getElementById('t2'), 2000, 45);
+
+/* =========== 复制地址 =========== */
+var ADDR = '广东省韶关市武江区惠民南路50号中环广场（小康生活宴会厅）';
+function copyAddr(){
+  function ok(){
+    var t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 1800);
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(ADDR).then(ok).catch(function(){ fallback(); });
+  }else fallback();
+  function fallback(){
+    var ta = document.createElement('textarea');
+    ta.value = ADDR;
+    ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); ok(); }catch(e){ prompt('请手动复制：', ADDR); }
+    document.body.removeChild(ta);
+  }
+}
 
 /* =========== 飘金粉 =========== */
 var spark = document.getElementById('spark');
