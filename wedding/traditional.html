@@ -351,24 +351,29 @@ body{
 
 /* ============== 署名金印章（已删） ============== */
 
-/* ============== 底部滚动祝福（真文字：金色渐变填充 + 两端渐隐） ============== */
+/* ===== 底部滚动祝福（真文字：金色渐变 + 两端渐隐 + 中间高亮变粗 + 无缝循环） ===== */
 .marquee{
-  margin-top:26px;overflow:hidden;height:22px;position:relative;
-  -webkit-mask:linear-gradient(90deg,transparent 0,#000 16%,#000 84%,transparent 100%);
-          mask:linear-gradient(90deg,transparent 0,#000 16%,#000 84%,transparent 100%);
+  margin-top:26px;overflow:hidden;height:20px;position:relative;
+  -webkit-mask:linear-gradient(90deg,transparent 0,#000 15%,#000 85%,transparent 100%);
+          mask:linear-gradient(90deg,transparent 0,#000 15%,#000 85%,transparent 100%);
   -webkit-mask-size:100% 100%;mask-size:100% 100%;
   -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
 }
 .marquee .track{
-  display:inline-block;white-space:nowrap;line-height:22px;
-  animation:scroll 28s linear infinite;
-  padding-left:100%;
+  display:inline-flex;white-space:nowrap;line-height:20px;
+  animation:scroll 26s linear infinite;
+  will-change:transform;
 }
+.marquee .grp{display:inline-flex}
 .marquee .w{
-  display:inline-block;font-size:14px;letter-spacing:6px;margin-right:38px;
-  color:#f2d78a;
+  --hi:0;                         /* 0=两侧 1=正中，由 JS 每帧写入 */
+  display:inline-block;font-size:12px;letter-spacing:5px;margin-right:32px;
+  color:#dcc07a;
+  opacity:calc(.68 + .32 * var(--hi));
+  -webkit-text-stroke-width:calc(.55px * var(--hi));
+  -webkit-text-stroke-color:#fff6d0;
+  text-shadow:0 0 calc(7px * var(--hi)) rgba(255,226,140,.8);
 }
-.marquee .w.alt{font-weight:700;color:#fff5c0}
 /* 支持渐变文字的浏览器 → 金色渐变填充；不支持则回退为纯金色（不会出现色块） */
 @supports (-webkit-background-clip:text) or (background-clip:text){
   .marquee .w{
@@ -376,15 +381,10 @@ body{
     background:linear-gradient(180deg,#fff7d4 0%,#f2d78a 58%,#d8a94e 100%);
     -webkit-background-clip:text;background-clip:text;
   }
-  .marquee .w.alt{
-    color:transparent;-webkit-text-fill-color:transparent;
-    background:linear-gradient(180deg,#ffffff 0%,#fff3b8 55%,#efd489 100%);
-    -webkit-background-clip:text;background-clip:text;
-  }
 }
 @keyframes scroll{
-  0%{transform:translateX(0)}
-  100%{transform:translateX(-100%)}
+  from{transform:translateX(0)}
+  to{transform:translateX(-50%)}   /* 内容两份 → 位移一份宽,首尾无缝 */
 }
 
 /* ============== 四角牡丹（已删） ============== */
@@ -452,10 +452,14 @@ body{
 
   <div class="foot"><img src="text_foot.png?v=6" alt="您的光临是我们最大的荣幸"></div>
 
-  <!-- 底部滚动祝福（真文字：金色渐变 + 两端渐隐） -->
+  <!-- 底部滚动祝福（真文字：金色渐变 + 两端渐隐 + 中间高亮，内容两份实现无缝） -->
   <div class="marquee">
     <div class="track">
-      <span class="w">天作之合</span><span class="w alt">鸾凤和鸣</span><span class="w">永结同心</span><span class="w alt">花好月圆</span><span class="w">白头偕老</span><span class="w alt">珠联璧合</span><span class="w">百年好合</span><span class="w alt">佳偶天成</span>
+      <span class="grp">
+        <span class="w">天作之合</span><span class="w">鸾凤和鸣</span><span class="w">永结同心</span><span class="w">花好月圆</span><span class="w">白头偕老</span><span class="w">珠联璧合</span><span class="w">百年好合</span><span class="w">佳偶天成</span>
+      </span><span class="grp" aria-hidden="true">
+        <span class="w">天作之合</span><span class="w">鸾凤和鸣</span><span class="w">永结同心</span><span class="w">花好月圆</span><span class="w">白头偕老</span><span class="w">珠联璧合</span><span class="w">百年好合</span><span class="w">佳偶天成</span>
+      </span>
     </div>
   </div>
 </div>
@@ -605,6 +609,51 @@ document.querySelector('.shuangxi').addEventListener('click',function(){
   this.style.transform='scale(1.18)';
   setTimeout(()=>this.style.transform='scale(1)',350);
 });
+
+/* =========== 底部滚动祝福：中间高亮变粗（位置驱动,不改布局宽度） =========== */
+(function(){
+  var box=document.querySelector('.marquee');
+  var track=box&&box.querySelector('.track');
+  if(!box||!track)return;
+  var words=[].slice.call(track.querySelectorAll('.w'));
+  var boxW=0,centers=[],prev=[];
+  function measure(){
+    boxW=box.getBoundingClientRect().width;   /* 只用宽度：位置差值与页面滚动无关 */
+    centers=words.map(function(w){return w.offsetLeft+w.offsetWidth/2;});
+  }
+  measure();
+  window.addEventListener('resize',measure);
+  window.addEventListener('orientationchange',function(){setTimeout(measure,260)});
+  setTimeout(measure,350);
+  if(document.fonts&&document.fonts.ready&&document.fonts.ready.then){
+    document.fonts.ready.then(function(){measure();setTimeout(measure,150);});
+  }
+  /* 读取 track 当前 translateX（矩阵第 5/13 位） */
+  function txNow(){
+    var st=getComputedStyle(track).transform;
+    if(!st||st==='none')return 0;
+    var m=st.match(/matrix(?:3d)?\(([^)]+)\)/);
+    if(!m)return 0;
+    var p=m[1].split(',');
+    var v=p.length>6?parseFloat(p[12]):parseFloat(p[4]);
+    return isNaN(v)?0:v;
+  }
+  var raf=window.requestAnimationFrame||window.webkitRequestAnimationFrame
+        ||function(f){return setTimeout(f,16)};
+  function tick(){
+    var tx=txNow(),cx=boxW/2,span=boxW*0.32||1;
+    for(var i=0;i<words.length;i++){
+      var d=Math.abs(centers[i]+tx-cx)/span;   /* 词心与容器中心的距离 */
+      var k=d>=1?0:1-d;                        /* 0=两侧 1=正中 */
+      if(prev[i]===undefined||Math.abs(prev[i]-k)>0.012){
+        prev[i]=k;
+        words[i].style.setProperty('--hi',k.toFixed(2));
+      }
+    }
+    raf(tick);
+  }
+  raf(tick);
+})();
 </script>
 </body>
 </html>
